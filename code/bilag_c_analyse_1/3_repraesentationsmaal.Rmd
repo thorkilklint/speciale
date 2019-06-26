@@ -1,0 +1,117 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+# Repræsentationsindeks og -gap
+I det følgende findes koden bag vores plot over repræsentationsindeks og -gap mellem MF'ere og befolkning på uddannelse. Data over befolkningens uddannelse går kun tilbage til 1991, hvorfor vi ekstrapolerer tilbage til 1971.
+```{r wrangle-indeks-og-gap, echo=FALSE,include=FALSE}
+#Uddannelsesgap
+## Omform test for boglig uddannelse
+andel_boglig <- test %>%
+  select(year, andel_boglig, gruppe) %>%
+  filter(gruppe!="Valgundersøgelsen") %>%
+  spread(key=gruppe, value=andel_boglig) %>%
+  filter(!is.na(Folketinget)&!is.na(`Vælgerbefolkningen (ekstrapoleret)`))
+
+## Laver indeks
+andel_boglig$indeks<-andel_boglig$Folketinget/andel_boglig$Vælgerbefolkningen
+## Laver ekstrapoleret indeks
+andel_boglig$indeks[is.na(andel_boglig$Vælgerbefolkningen)]<-andel_boglig$Folketinget[is.na(andel_boglig$Vælgerbefolkningen)]/andel_boglig$`Vælgerbefolkningen (ekstrapoleret)`[is.na(andel_boglig$Vælgerbefolkningen)]
+
+## Laver gap
+andel_boglig$gap<-andel_boglig$Folketinget-andel_boglig$Vælgerbefolkningen
+## Laver ekstrapoleret gap
+andel_boglig$gap[is.na(andel_boglig$Vælgerbefolkningen)]<-andel_boglig$Folketinget[is.na(andel_boglig$Vælgerbefolkningen)]-andel_boglig$`Vælgerbefolkningen (ekstrapoleret)`[is.na(andel_boglig$Vælgerbefolkningen)]
+
+## Variable til plot
+andel_boglig$Kilde <- "Ekstrapoleret"
+andel_boglig$Kilde[andel_boglig$year>1990]<-"Registerdata"
+andel_boglig$Uddannelse <- "Boglig\nvidereuddannelse"
+
+andel_boglig <- andel_boglig %>%
+  select(year, indeks, gap, Kilde, Uddannelse)
+
+## Omform test2 for akademisk uddannelse
+andel_akk<- test2 %>%
+  select(year, andel_akk, gruppe) %>%
+  spread(key=gruppe, value=andel_akk) %>%
+  filter(!is.na(Folketinget)&!is.na(`Vælgerbefolkningen (ekstrapoleret)`))
+
+## Laver indeks
+andel_akk$indeks<-andel_akk$Folketinget/andel_akk$Vælgerbefolkningen
+## Laver ekstrapoleret indeks
+andel_akk$indeks[is.na(andel_akk$Vælgerbefolkningen)]<-andel_akk$Folketinget[is.na(andel_akk$Vælgerbefolkningen)]/andel_akk$`Vælgerbefolkningen (ekstrapoleret)`[is.na(andel_akk$Vælgerbefolkningen)]
+
+## Laver gap
+andel_akk$gap<-andel_akk$Folketinget-andel_akk$Vælgerbefolkningen
+## Laver ekstrapoleret gap
+andel_akk$gap[is.na(andel_akk$Vælgerbefolkningen)]<-andel_akk$Folketinget[is.na(andel_akk$Vælgerbefolkningen)]-andel_akk$`Vælgerbefolkningen (ekstrapoleret)`[is.na(andel_akk$Vælgerbefolkningen)]
+
+## Variable til plot
+andel_akk$Kilde <- "Ekstrapoleret"
+andel_akk$Kilde[andel_akk$year>1990]<-"Registerdata"
+andel_akk$Uddannelse <- "Akademisk\nkandidatgrad"
+
+andel_akk <- andel_akk %>%
+  select(year, indeks, gap, Kilde, Uddannelse)
+
+
+# JOIN DATA
+indeks_gap_data<-full_join(andel_akk, andel_boglig)
+
+#Observationer til at sammenbinde kurver
+Kilde<-c("Ekstrapoleret", "Ekstrapoleret")
+Uddannelse <- c("Akademisk\nkandidatgrad", "Boglig\nvidereuddannelse")
+year <- c(1994,1994)
+gap <- indeks_gap_data$gap[indeks_gap_data$year==1994]
+indeks <- indeks_gap_data$indeks[indeks_gap_data$year==1994]
+
+ekstra_obs<-data.frame(Kilde,Uddannelse, year, gap, indeks)
+
+indeks_gap_data<-full_join(indeks_gap_data, ekstra_obs)
+
+#Omkod
+indeks_gap_data$Kilde <- factor(indeks_gap_data$Kilde,
+                                levels= c("Registerdata",
+                                          "Ekstrapoleret"))
+
+#Plotter indeks
+plot_indeks<-ggplot(data=indeks_gap_data, aes(x=year, y=indeks, color=Uddannelse, shape=Kilde, linetype=Kilde))+
+  geom_point()+
+  geom_line()+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.5)+
+  xlab("År")+
+  ylab("Repræsentationsindeks")+
+  guides(color=guide_legend(title="Uddannelsesniveau"))+
+  scale_shape_manual(values=c(16,1)) +
+  scale_y_continuous(breaks=c(1,5,10,15,20), limits = c(1, 23))+
+  geom_hline(yintercept=1, linetype="dashed", color = "gray40")+ 
+  theme(legend.position = "none")+
+  theme(axis.title=element_text(size=10))
+
+#Plotter gap
+plot_gap<-ggplot(data=indeks_gap_data, aes(x=year, y=gap*100, color=Uddannelse, shape=Kilde, linetype=Kilde))+
+  geom_point()+
+  geom_line()+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.5)+
+  xlab("År")+
+  ylab("Repræsentationssgap (pct.point)")+
+  guides(color=guide_legend(title="Uddannelsesniveau"))+
+  scale_shape_manual(values=c(16,1))+
+  ylim(0,60)+
+  theme(axis.title=element_text(size=10))
+```
+
+```{r plot-gap-og-indeks, echo=FALSE, include=TRUE, fig.cap='Repræsentationsindeks og repræsentationsgap for uddannelse 1971-2015', fig.align='center', out.width='95%', fig.asp=0.6} 
+ggarrange(plot_indeks,plot_gap,
+          widths = c(0.64, 1), 
+          labels = c("A", "B"))
+```

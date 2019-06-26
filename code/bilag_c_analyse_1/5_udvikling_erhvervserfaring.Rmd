@@ -1,0 +1,189 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Folketingsmedlemmers erhvervserfaring over tid
+Vi ønsker at undersøge de indvalgte folketingsmedlemmers gennemsnitslige antal års erhvervserfaring for hver af de seks valgår i den undersøgte periode.
+
+Først gør vi data klar.
+```{r wrangling-erhv-udv, include=FALSE, echo=FALSE}
+df_erhv<-readRDS("...data")
+
+#Omkoder til samme format som VL
+df_erhv$vl_2005 <- df_erhv$valgt_05
+df_erhv$vl_2007 <- df_erhv$valgt_07
+df_erhv$vl_2011 <- df_erhv$valgt_11
+df_erhv$vl_2015 <- df_erhv$valgt_15
+
+df_erhv <- df_erhv %>% 
+  select (-c(valgt_05, valgt_07,valgt_11,valgt_15))
+
+#Vi tjekker hvilke personer der er valgt i 1998 - kan se at vi har taget tre kandidater for mange med.
+df_1998 <- df_erhv %>% 
+  filter(vl_1998==TRUE) %>% 
+  select(navn_merge, parti) %>% 
+  group_by(parti)
+
+#Fjerner de tre kandidater, som er fejlkodet i 1998
+df_erhv$vl_1998[df_erhv$navn_merge=="Else Theill Sørensen"] <- FALSE
+df_erhv$vl_1998[df_erhv$navn_merge=="Ritt Bjerregaard"] <- FALSE
+df_erhv$vl_1998[df_erhv$navn_merge=="Poul Qvist Jørgensen"] <- FALSE
+
+#Omkoder 1998 og 2001
+df_erhv$vl_1998<-as.logical(df_erhv$vl_1998)
+df_erhv$vl_2001<-as.logical(df_erhv$vl_2001)
+
+#Renser
+df_erhv_clean <- df_erhv %>%
+  select(navn_merge, parti, erhv_akk_varighed, erhv_akk_varighed2, vl_1998, vl_2001, vl_2005, vl_2007, vl_2011, vl_2015)
+
+#Gør det langt
+df_erhv_long<-gather(df_erhv_clean, "year", "Valgt", vl_1998:vl_2015) %>% 
+  filter(Valgt==T)
+
+#Omkoder til dato
+df_erhv_long$year[df_erhv_long$year=="vl_1998"] <- "1998-03-11"
+df_erhv_long$year[df_erhv_long$year=="vl_2001"] <- "2001-11-20"
+df_erhv_long$year[df_erhv_long$year=="vl_2005"] <- "2005-02-08"
+df_erhv_long$year[df_erhv_long$year=="vl_2007"] <- "2007-11-13"
+df_erhv_long$year[df_erhv_long$year=="vl_2011"] <- "2011-09-15"
+df_erhv_long$year[df_erhv_long$year=="vl_2015"] <- "2015-06-18"
+
+df_erhv_long$year <- ymd(df_erhv_long$year)
+
+#Laver et plot-df
+df_erhv_plot<-df_erhv_long %>% 
+  group_by(year) %>%
+  summarise(gnms_erfaring1 = mean(erhv_akk_varighed, na.rm=T),
+            gnms_erfaring2 = mean(erhv_akk_varighed2, na.rm=T))
+
+
+#Laver funktion, der gør vi at vi kun viser med to decimaler i plottet
+two_decimals_fun <- function(x) sprintf("%.2f", x)
+
+#Data til plot
+df_erhv_plot <- df_erhv_plot %>%
+  select(year,gnms_erfaring1, gnms_erfaring2 ) %>%
+  arrange(year)
+```
+
+Herefter plotter vi vores hovedmål for erhvervserfaring, der sætter en given kandidats indvalgsdato som sluttidspunkt for stillinger, hvor kandidaten ikke selv har opgivet et sluttispunkt.
+```{r plot-erhverv-samlet, fig.cap='Folketingsmedlemmers erhvervserfaring over tid', fig.align='center', include=TRUE, echo=FALSE, out.width='85%'}
+ggplot(data=df_erhv_plot, aes(x=year, y=gnms_erfaring2))+
+  geom_line(stat = "identity") +
+  geom_point()+
+  theme_classic() +
+  xlab("Valgår") +
+  ylab("Års erhvervserfaring") +
+  scale_x_date(breaks = df_erhv_plot$year, labels = format(as.Date(df_erhv_plot$year, format="%Y%d/%m/"),"%Y")) +
+  ylim(0, 20) +
+  geom_text(aes(label=two_decimals_fun(gnms_erfaring2)), vjust=2, color = "black", size=4)
+```
+
+Dernæst undersøger vi om tendensen findes på tværs af alder.
+Vi forbereder data til at kunne opdele i tre alderskategorier.
+```{r erhv-alder-wrangling, include=FALSE, echo=FALSE}
+#Laver variabel for årstal for indvælgelse
+df_erhv$foerste_indtraeden_aar <- str_sub(df_erhv$første_indtræden_dato_scrape, start = 1L, end=4L)
+df_erhv$foerste_indtraeden_aar <- as.numeric(df_erhv$foerste_indtraeden_aar)
+table(df_erhv$foerste_indtraeden_aar)
+
+#Gør datasætter langt
+df_erhv_alder_clean <- df_erhv %>%
+  select(navn_merge, parti, erhv_akk_varighed, erhv_akk_varighed2, vl_1998, vl_2001, vl_2005, vl_2007, vl_2011, vl_2015, foedselsaar)
+
+df_erhv_alder_long<-gather(df_erhv_alder_clean, "year", "Valgt", vl_1998:vl_2015) %>% 
+  filter(Valgt==T)
+
+#Omkoder til dato
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_1998"] <- "1998-03-11"
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_2001"] <- "2001-11-20"
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_2005"] <- "2005-02-08"
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_2007"] <- "2007-11-13"
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_2011"] <- "2011-09-15"
+df_erhv_alder_long$year[df_erhv_alder_long$year=="vl_2015"] <- "2015-06-18"
+
+df_erhv_alder_long$year <- ymd(df_erhv_alder_long$year)
+class(df_erhv_alder_long$year)
+
+#Valgår
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="1998-03-11"] <- 1998
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="2001-11-20"] <- 2001
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="2005-02-08"] <- 2005
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="2007-11-13"] <- 2007
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="2011-09-15"] <- 2011
+df_erhv_alder_long$valgaar[df_erhv_alder_long$year=="2015-06-18"] <- 2015
+
+class(df_erhv_alder_long$valgaar)
+class(df_erhv_alder_long$foedselsaar)
+
+df_erhv_alder_long$alder_ved_valgaar<- df_erhv_alder_long$valgaar-df_erhv_alder_long$foedselsaar
+
+#Laver alderskategorier
+df_erhv_alder_long$alder_kat[df_erhv_alder_long$alder_ved_valgaar < 40] <- "< 40 år"
+df_erhv_alder_long$alder_kat[df_erhv_alder_long$alder_ved_valgaar > 39 & df_erhv_alder_long$alder_ved_valgaar <=55] <- "40-55 år"
+df_erhv_alder_long$alder_kat[df_erhv_alder_long$alder_ved_valgaar > 55] <- "Over 55 år"
+
+table(df_erhv_alder_long$alder_kat)
+
+#Laver df til plot
+df_erhv_alder_plot<-df_erhv_alder_long %>% 
+  filter(is.na(alder_kat)==FALSE) %>% 
+  group_by(year, alder_kat) %>%
+  summarise(gnms_erfaring1 = mean(erhv_akk_varighed, na.rm=T),
+            gnms_erfaring2 = mean(erhv_akk_varighed2, na.rm=T))
+```
+
+Og plotter udviklingen i erhvervserfaring for tre de tre aldersgrupper.
+```{r erhv-alder-plot, fig.cap='Folketingsmedlemmers erhvervserfaring over tid fordelt på aldersgrupper', fig.align='center', include=TRUE, echo=FALSE, out.width='85%'}
+#Laver plot
+ggplot(data=df_erhv_alder_plot, aes(x=year, y=gnms_erfaring2, color=alder_kat))+
+  geom_line(stat = "identity") +
+  theme_classic() +
+  xlab("Valgår") +
+  scale_x_date(breaks = df_erhv_alder_plot$year, labels = format(as.Date(df_erhv_alder_plot$year, format="%Y%d/%m/"),"%Y")) +
+  ylab("Års erhvervserfaring") +
+  scale_color_viridis(discrete=TRUE, option = "A",begin=0, end=0.94) +
+  geom_point(size=1)+
+  ylim(0, 25) +
+  #geom_text(aes(label=two_decimals_fun(gnms_erfaring2)), vjust=2, color = "black", size=2.5) +
+  guides(color=guide_legend(title="Alder i valgåret"))
+```
+
+Så undersøger vi, om erhvervserfaringen falder på tværs af partier ved et plot. 
+```{r erhv-parti-plot, fig.cap='Folketingsmedlemmers erhvervserfaring over tid fordelt på alder', fig.align='center', include=TRUE, echo=FALSE, out.width='85%'}
+df_erhv_long$parti_kat <- "99"
+df_erhv_long$parti_kat[df_erhv_long$parti=="V"]<-2
+df_erhv_long$parti_kat[df_erhv_long$parti=="S"]<-3
+df_erhv_long$parti_kat[df_erhv_long$parti=="DF"]<-1
+
+df_erhv_long$parti_kat<-factor(df_erhv_long$parti_kat,
+                               levels=c(1,2,3,99),
+                               labels=c("Dansk Folkeparti",
+                                        "Venstre",
+                                        "Socialdemokratiet",
+                                        "Øvrige")) 
+
+#Laver et plot-df
+df_erhv_plot_parti<-df_erhv_long %>% 
+  group_by(parti_kat, year) %>%
+  summarise(gnms_erfaring1 = mean(erhv_akk_varighed, na.rm=T),
+            gnms_erfaring2 = mean(erhv_akk_varighed2, na.rm=T))
+
+ggplot(data=df_erhv_plot_parti, aes(x=year, y=gnms_erfaring2, color=parti_kat))+
+  geom_line(stat = "identity") +
+  geom_point()+
+  theme_classic()+
+  xlab("Valgår") +
+  ylab("Års erhvervserfaring")+
+  scale_color_viridis(option="A", discrete = T, begin=0, end=0.94)+
+  guides(color=guide_legend(title="Partimedlemsskab"))+
+  ylim(0, 25)
+```
