@@ -11,7 +11,7 @@ output:
 
 ## Primingeskperimentet: Tillid til politikere i Folketinget
 ```{r Indlaes-eksperiment-data, include=FALSE}
-eksperiment_df<-readRDS(file="/Users/thorkilklint/Google_Drive_evert.klint.2019@gmail.com/04_Data/02_Estimation/02_Data/eksperiment_df_clean.Rds")
+eksperiment_df<-readRDS(file="...data")
 ```
 Vi udnytter, at conjointeksperimentet tilfældigt eksponerer vores respondenter for forskellige typer politikerprofiler. Vi ved præcis hvilke kandidater, hver respondent har set, og undersøger derfor, om vælgeres idé om sammensætningen af Folketinget og deres tillid til de siddende politikere i Folketinget varierer hermed.
 
