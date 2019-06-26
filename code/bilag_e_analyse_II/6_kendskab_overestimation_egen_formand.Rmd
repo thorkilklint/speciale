@@ -1,0 +1,45 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Test af om respondenterne overestimerer erhvervserfaringen hos deres egen kandidat
+```{r har-egen-kandidat-mere-erfaring, include=FALSE}
+table(eksperiment_df$erhv_egen_formand)
+table(eksperiment_df$erhv_anden_formand)
+
+eksperiment_df$estimeret_erhv_erf <- 99
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_egen_formand=="Under 2 år"]<-1
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_anden_formand=="Under 2 år"]<-1
+
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_egen_formand=="2-4 år"]<-3
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_anden_formand=="2-4 år"]<-3
+
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_egen_formand=="5-8 år"]<-6.5
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_anden_formand=="5-8 år"]<-6.5
+
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_egen_formand=="9-12 år"]<-10.5
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_anden_formand=="9-12 år"]<-10.5
+
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_egen_formand=="Over 12 år"]<-13.5
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$erhv_anden_formand=="Over 12 år"]<-13.5
+
+table(eksperiment_df$estimeret_erhv_erf,eksperiment_df$erhv_egen_formand)
+table(eksperiment_df$estimeret_erhv_erf,eksperiment_df$erhv_anden_formand)
+
+eksperiment_df$estimeret_erhv_erf[eksperiment_df$estimeret_erhv_erf==99]<-NA
+```
+
+```{r stargaz-est-egen-kan, results='asis', message=F, warning=FALSE, echo=FALSE, eval=TRUE}
+table(eksperiment_df$est_lang_udd)
+
+#Ingen effekt - folk estimerer ikke deres egen kandidat til at have lavere erfaring
+sig_estimeret_erhverv <- lm(estimeret_erhv_erf ~ egen_formand_dik + parti, eksperiment_df)
+stargazer(sig_estimeret_erhverv, title="Estimation af erhvervserfaring for egen eller anden kandidat", align=TRUE, type='latex',header=FALSE)
+```
