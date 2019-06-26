@@ -1,0 +1,150 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+### Uddannelse og partier
+Vi undersøger om stigningen i uddannelse er et fænomen, der går på tværs af partier.
+
+Først laver vi en tabel over uddannelsesfordelingen for de 175 danske folketingsmedlemmer indvalgt i 2015.
+```{r fordeling-2015, include=TRUE, echo=FALSE, fig.cap='Folketingspartiernes uddannelsesniveau', fig.align='center', out.width='85%'}
+#Nuværende fordeling
+## Henter data
+df_udd_udv <-readRDS("...data")
+
+## Wrangler data
+dummy_udd_2015 <- df_udd_udv %>%
+  filter(valgt_15==T) %>%
+  count(parti_15, udd_kat_grov) %>% 
+  group_by(parti_15) %>% 
+  add_tally(wt=NULL) %>%
+  mutate(andel_boglig = n/nn)
+
+#Plotter
+ggplot(data=dummy_udd_2015, aes(y = n, x = parti_15, fill = udd_kat_grov))+
+  geom_bar(stat="identity")+
+  theme_classic()+
+  scale_fill_viridis(discrete=TRUE, option = "A",begin=0.2, end=0.94)+
+  xlab("Parti")+
+  ylab("Antal folketingsmedlemmer (2015)")+
+  guides(fill=guide_legend(title="Uddannelsesniveau"))
+```
+
+Vi ser på udviklingen i bogligt videreuddannede over de seneste 100 år for de fire største partier.
+
+```{r plot-udd-gamle-partier, include=TRUE, echo=FALSE, fig.cap='Andelen af folketingsmedlemmer med boglig videreuddannelse eller kandidatgrad i de fire gamle partier', fig.align='center', out.width='95%', fig.asp=0.7}
+#### OMKOD PARTI
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="Alt"]<-"Alternativet"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="DF"]<-"Dansk Folkeparti"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="EL"]<-"Enhedslisten"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="KF"]<-"Nationalliberale/højre/konservative folkeparti"
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="K"]<-"Nationalliberale/højre/konservative folkeparti"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="KD"]<-"Kristeligt Folkeparti"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="LA"]<-"Liberal Alliance"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="R"]<-"Radikale venstre"
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="RV"]<-"Radikale venstre"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="S"]<-"Socialdemokratiet"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="SF"]<-"Socialistisk Folkeparti"
+
+udd_aar$parti_v_indtræden[is.na(udd_aar$parti_v_indtræden)&udd_aar$parti=="V"]<-"Venstre"
+
+#Udfordring: HVis der kun sidder én med hvert år... DERFOR: vi tager et parti med, når det har over 10 personer på tinge
+parti_udd_boglig <- udd_aar %>%
+  group_by(parti_v_indtræden) %>%
+  count(year, udd_kat_grov) %>% 
+  group_by(year, parti_v_indtræden) %>% 
+  add_tally(wt=n) %>%
+  filter(nn>3) %>%
+  mutate(andel_boglig = n/nn) %>%
+  filter(udd_kat_grov=="Boglig videreuddannelse/kandidatgrad")
+
+#PLOT FOR KUN DE GAMLE
+#Kun de gamle partier: Konvergerer
+gamle_partier <- parti_udd_boglig %>%
+  filter(parti_v_indtræden=="Nationalliberale/højre/konservative folkeparti"|
+           parti_v_indtræden=="Venstre"| parti_v_indtræden=="Socialdemokratiet" | parti_v_indtræden=="Radikale venstre")
+
+gamle_partier$parti_v_indtræden[gamle_partier$parti_v_indtræden=="Nationalliberale/højre/konservative folkeparti"]<-"Nationalliberale/højre/\nkonservative folkeparti"
+
+ggplot(gamle_partier, aes(y=andel_boglig, x=year, group=parti_v_indtræden)) + 
+  geom_line(aes(color=parti_v_indtræden, linetype=parti_v_indtræden)) +
+  theme_classic() +
+  scale_color_viridis(discrete=TRUE, option = "B", begin=0, end=0.9) +
+  xlab("Valgår") +
+  ylab("Andel med boglig videreuddannelse/kandidatgrad") +
+  guides(color=guide_legend(title="Parti v. indtræden")) + 
+  scale_linetype_manual("Parti v. indtræden", values=c(2,6,5,1))
+```
+
+Vi undersøger en eventuel loftseffekt ved at undersøge andelen med en kandidatgrad.
+
+```{r plot-akk-gamle-partier, include=TRUE, echo=FALSE, fig.cap='Andelen af folketingsmedlemmer med kandidatgrad i de fire gamle partier', fig.align='center', out.width='95%', fig.asp=0.7}
+parti_udd_akk <- udd_aar %>%
+  group_by(parti_v_indtræden) %>%
+  count(year, udd_kat) %>% 
+  group_by(year, parti_v_indtræden) %>% 
+  add_tally(wt=n) %>%
+  filter(nn>4) %>%
+  mutate(andel_boglig = n/nn) %>%
+  filter(udd_kat=="Kandidatgrad eller højere")
+
+#Kun de gamle partier: Konvergerer
+gamle_partier <- parti_udd_akk %>%
+  filter(parti_v_indtræden=="Nationalliberale/højre/konservative folkeparti"|
+           parti_v_indtræden=="Venstre"| parti_v_indtræden=="Socialdemokratiet" | parti_v_indtræden=="Radikale venstre")
+
+gamle_partier$parti_v_indtræden[gamle_partier$parti_v_indtræden=="Nationalliberale/højre/konservative folkeparti"]<-"Nationalliberale/højre/\nkonservative folkeparti"
+
+ggplot(gamle_partier, aes(y=andel_boglig, x=year, group=parti_v_indtræden)) + 
+  geom_line(aes(color=parti_v_indtræden, linetype=parti_v_indtræden)) +
+  theme_classic() +
+  scale_color_viridis(discrete=TRUE, option = "B", begin=0, end=0.90) +
+  xlab("Valgår") +
+  ylab("Andel med en kandidatgrad") +
+  guides(color=guide_legend(title="Parti v. indtræden")) + 
+  scale_linetype_manual("Parti v. indtræden", values=c(2,6,5,1))
+```
+
+Vi undersøger det ligeledes for de resterende partier, der siden valget i 1971 har fået mere end 10 mandater i to på hinanden følgende valg. 
+
+```{r plot-udd-efter-1971, include=TRUE, echo=FALSE, fig.cap='Andelen af folketingsmedlemmer med boglig videreuddannelse eller kandidatgrad efter 1973 i udvalgte partier', fig.align='center', out.width='95%', fig.asp=0.7}
+#Hvilke partier har to på hinanden følgende valg over 10 mandater
+skal_med <- parti_udd_boglig %>%
+  filter(year>as.Date("1970-01-01")) %>%
+  mutate(over_9=nn>9) %>%
+  group_by(parti_v_indtræden) %>%
+  summarise(test=sum(over_9)) %>%
+  arrange(desc(test)) %>%
+  filter(test>1)
+
+skal_med_vec <- paste(skal_med$parti_v_indtræden, collapse="$|")
+
+#Vælger de rigtige partier og fjern de fire gamle
+efter_1971<-parti_udd_boglig %>%
+  filter(str_detect(parti_v_indtræden, pattern = skal_med_vec)) %>%
+  filter(year>as.Date("1970-01-01")) %>%
+  filter(parti_v_indtræden!="Nationalliberale/højre/konservative folkeparti"&parti_v_indtræden!="Socialdemokratiet"&parti_v_indtræden!="Radikale venstre"&parti_v_indtræden!="Venstre")
+  
+ggplot(efter_1971, aes(y=andel_boglig, x=year, group=parti_v_indtræden)) + 
+  geom_line(aes(color=parti_v_indtræden, linetype=parti_v_indtræden)) +
+  theme_classic() +
+  scale_color_viridis(discrete=TRUE, option = "B",begin=0, end=0.9) +
+  xlab("Valgår") +
+  ylab("Andel af folketingsmedlemmerne") +
+  guides(color=guide_legend(title="Parti v. indtræden"))+ 
+  scale_linetype_manual("Parti v. indtræden", values=c(3,2,6,5,1))
+```

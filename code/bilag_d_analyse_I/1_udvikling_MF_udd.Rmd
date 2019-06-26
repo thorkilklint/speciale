@@ -1,0 +1,156 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+Vi indlæser de nødvendige pakker.
+```{r, message=F, include=FALSE, echo=FALSE}
+library(dplyr) # Kan rense det nye data
+library(tidyr)
+library(stringr) # Til arbejde med string-data
+library(ggplot2) # Til visualisering af resultater
+library(viridis)
+library(lubridate)
+library(ggpubr) # Flere plots sammen
+library(openxlsx) # Kan loade og gemme excel
+library(ggpubr)
+```
+
+Henter data
+```{r Indlaes-udd-data, include=FALSE, echo=FALSE}
+#Load uddannelsesdata
+df_udd_udv <-readRDS("...data")
+```
+
+Gør data tidy
+```{r tidying-udd, include=FALSE, echo=FALSE}
+# Vi gør datasættet tidy, så vi kan lave et plot
+udd_aar<-gather(df_udd_udv, "year", "Valgt", vl_1849:vl_2015)%>% 
+  filter(Valgt==1)
+
+#Omkoder til at være specifikke årstal
+udd_aar$year[udd_aar$year=="vl_1849"] <- "1849-12-04"
+udd_aar$year[udd_aar$year=="vl_1852"] <- "1852-08-04"
+udd_aar$year[udd_aar$year=="vl_1853_1"] <- "1853-02-26"
+udd_aar$year[udd_aar$year=="vl_1853_2"] <- "1853-05-27"
+udd_aar$year[udd_aar$year=="vl_1854"] <- "1854-12-01"
+udd_aar$year[udd_aar$year=="vl_1855"] <- "1855-06-14"
+udd_aar$year[udd_aar$year=="vl_1858"] <- "1858-06-14"
+udd_aar$year[udd_aar$year=="vl_1861"] <- "1861-06-14"
+udd_aar$year[udd_aar$year=="vl_1864"] <- "1864-06-07"
+udd_aar$year[udd_aar$year=="vl_1866_1"] <- "1866-06-04"
+udd_aar$year[udd_aar$year=="vl_1866_2"] <- "1866-10-12"
+udd_aar$year[udd_aar$year=="vl_1869"] <- "1869-09-22"
+udd_aar$year[udd_aar$year=="vl_1872"] <- "1872-09-20"
+udd_aar$year[udd_aar$year=="vl_1873"] <- "1873-11-14"
+udd_aar$year[udd_aar$year=="vl_1876"] <- "1876-04-25"
+udd_aar$year[udd_aar$year=="vl_1879"] <- "1879-01-03"
+udd_aar$year[udd_aar$year=="vl_1881_1"] <- "1881-05-24"
+udd_aar$year[udd_aar$year=="vl_1881_2"] <- "1881-07-26"
+udd_aar$year[udd_aar$year=="vl_1884"] <- "1884-06-25"
+udd_aar$year[udd_aar$year=="vl_1887"] <- "1887-01-28"
+udd_aar$year[udd_aar$year=="vl_1890"] <- "1890-01-21"
+udd_aar$year[udd_aar$year=="vl_1892"] <- "1892-04-20"
+udd_aar$year[udd_aar$year=="vl_1895"] <- "1895-04-09"
+udd_aar$year[udd_aar$year=="vl_1898"] <- "1898-04-05"
+udd_aar$year[udd_aar$year=="vl_1901"] <- "1901-04-03"
+udd_aar$year[udd_aar$year=="vl_1903"] <- "1903-06-16"
+udd_aar$year[udd_aar$year=="vl_1906"] <- "1906-05-29"
+udd_aar$year[udd_aar$year=="vl_1909"] <- "1909-05-25"
+udd_aar$year[udd_aar$year=="vl_1910"] <- "1910-05-20"
+udd_aar$year[udd_aar$year=="vl_1913"] <- "1913-05-20"
+udd_aar$year[udd_aar$year=="vl_1915"] <- "1915-05-07"
+udd_aar$year[udd_aar$year=="vl_1918"] <- "1918-04-22"
+udd_aar$year[udd_aar$year=="vl_1920_1"] <- "1920-04-26"
+udd_aar$year[udd_aar$year=="vl_1920_2"] <- "1920-07-06"
+udd_aar$year[udd_aar$year=="vl_1920_3"] <- "1920-09-21"
+udd_aar$year[udd_aar$year=="vl_1924"] <- "1924-04-11"
+udd_aar$year[udd_aar$year=="vl_1926"] <- "1926-12-02"
+udd_aar$year[udd_aar$year=="vl_1929"] <- "1929-04-24"
+udd_aar$year[udd_aar$year=="vl_1932"] <- "1932-11-16"
+udd_aar$year[udd_aar$year=="vl_1935"] <- "1935-10-22"
+udd_aar$year[udd_aar$year=="vl_1939"] <- "1939-04-03"
+udd_aar$year[udd_aar$year=="vl_1943"] <- "1943-03-23"
+udd_aar$year[udd_aar$year=="vl_1945"] <- "1945-10-30"
+udd_aar$year[udd_aar$year=="vl_1947"] <- "1947-10-28"
+udd_aar$year[udd_aar$year=="vl_1950"] <- "1950-09-05"
+udd_aar$year[udd_aar$year=="vl_1953_1"] <- "1953-04-21"
+udd_aar$year[udd_aar$year=="vl_1953_2"] <- "1953-09-22"
+udd_aar$year[udd_aar$year=="vl_1957"] <- "1957-05-14"
+udd_aar$year[udd_aar$year=="vl_1960"] <- "1960-11-15"
+udd_aar$year[udd_aar$year=="vl_1964"] <- "1964-09-22"
+udd_aar$year[udd_aar$year=="vl_1966"] <- "1966-11-22"
+udd_aar$year[udd_aar$year=="vl_1968"] <- "1968-01-23"
+udd_aar$year[udd_aar$year=="vl_1971"] <- "1971-09-21"
+udd_aar$year[udd_aar$year=="vl_1973"] <- "1973-12-04"
+udd_aar$year[udd_aar$year=="vl_1975"] <- "1975-01-09"
+udd_aar$year[udd_aar$year=="vl_1977"] <- "1977-02-15"
+udd_aar$year[udd_aar$year=="vl_1979"] <- "1979-10-23"
+udd_aar$year[udd_aar$year=="vl_1981"] <- "1981-12-08"
+udd_aar$year[udd_aar$year=="vl_1984"] <- "1984-01-10"
+udd_aar$year[udd_aar$year=="vl_1987"] <- "1987-09-08"
+udd_aar$year[udd_aar$year=="vl_1988"] <- "1988-05-10"
+udd_aar$year[udd_aar$year=="vl_1990"] <- "1990-12-12"
+udd_aar$year[udd_aar$year=="vl_1994"] <- "1994-09-21"
+udd_aar$year[udd_aar$year=="vl_1998"] <- "1998-03-11"
+udd_aar$year[udd_aar$year=="vl_2001"] <- "2001-11-20"
+udd_aar$year[udd_aar$year=="vl_2005"] <- "2005-02-08"
+udd_aar$year[udd_aar$year=="vl_2007"] <- "2007-11-13"
+udd_aar$year[udd_aar$year=="vl_2011"] <- "2011-09-15"
+udd_aar$year[udd_aar$year=="vl_2015"] <- "2015-06-18"
+
+#Omkoder til dato
+udd_aar$year <- ymd(udd_aar$year)
+```
+
+Forbereder data til plot over MF'ers uddannelse i to grove kategorier
+```{r wrangling-udd-kat-grov, include=FALSE, echo=FALSE} 
+#Grupper og summer 
+#OBS: Jeg vil gerne lave et stacked kurveplot, hvor vi viser alle fire uddannelser
+dummy_udd_kat_grov <- udd_aar %>%
+  count(year, udd_kat_grov) %>% 
+  group_by(year) %>% 
+  add_tally() %>%
+  mutate(andel_bolig_kat = n/nn)
+```
+
+Plotter MF'ers uddannelse over tid i to grove kategorier kategorier
+```{r plot-udd-kat-grov, include=TRUE, echo=FALSE, fig.cap='Folketingsmedlemmers uddannelse over tid i grove uddannelsekategorier', fig.align='center'}
+#Folketingsmedlemmernes uddannelse over tid - stacked bar plot
+ggplot(dummy_udd_kat_grov, aes(y=andel_bolig_kat, x=year, fill=udd_kat_grov)) + 
+  geom_area( stat="identity") +
+  theme_classic() +
+  scale_fill_viridis(discrete=TRUE, option = "A",begin=0.15, end=0.94) +
+  xlab("Valgår") +
+  ylab("Andel af folketingsmedlemmerne") +
+  guides(fill=guide_legend(title="Højeste gennemførte uddannelse")) 
+  #+ theme(legend.position="bottom")
+```
+
+Forbereder data til plot over MF'ers uddannelse over tid i fire kategorier kategorier
+```{r wrangling-udd-kat, include=FALSE, echo=FALSE}
+#Grupper og summer 
+#OBS: Jeg vil gerne lave et stacked percent barplot, hvor vi viser alle fire uddannelser
+dummy_udd_kat <- udd_aar %>%
+  count(year, udd_kat) %>% 
+  group_by(year) %>% 
+  add_tally() %>%
+  mutate(andel_bolig_kat = n/nn)
+```
+
+Plotter MF'ers uddannelse over tid i fire kategorier kategorier
+```{r plot-udd-kat, include=TRUE, echo=FALSE, fig.cap='Folketingsmedlemmers uddannelse over tid i uddannelseskategorier', fig.align='center'} 
+#Folketingsmedlemmernes uddannelse over tid
+ggplot(dummy_udd_kat, aes(y=andel_bolig_kat, x=year, fill=udd_kat)) + 
+  geom_area( stat="identity") +
+  theme_classic() +
+  scale_fill_viridis(discrete=TRUE, option = "A",begin=0.15, end=0.94) +
+  xlab("Valgår") +
+  ylab("") +
+  guides(fill=guide_legend(title="Højeste gennemførte uddannelse"))
+```

@@ -1,0 +1,419 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+```{r Indlaes-udd-data-app, include=FALSE, echo=FALSE}
+#Load uddannelsesdata
+df_udd_udv <-readRDS("...data")
+```
+
+```{r tidying-udd-app, include=FALSE, echo=FALSE}
+# Vi gør datasættet tidy, så vi kan lave et plot
+udd_aar<-gather(df_udd_udv, "year", "Valgt", vl_1849:vl_2015)%>% 
+  filter(Valgt==1)
+
+#Omkoder til at være specifikke årstal
+udd_aar$year[udd_aar$year=="vl_1849"] <- "1849-12-04"
+udd_aar$year[udd_aar$year=="vl_1852"] <- "1852-08-04"
+udd_aar$year[udd_aar$year=="vl_1853_1"] <- "1853-02-26"
+udd_aar$year[udd_aar$year=="vl_1853_2"] <- "1853-05-27"
+udd_aar$year[udd_aar$year=="vl_1854"] <- "1854-12-01"
+udd_aar$year[udd_aar$year=="vl_1855"] <- "1855-06-14"
+udd_aar$year[udd_aar$year=="vl_1858"] <- "1858-06-14"
+udd_aar$year[udd_aar$year=="vl_1861"] <- "1861-06-14"
+udd_aar$year[udd_aar$year=="vl_1864"] <- "1864-06-07"
+udd_aar$year[udd_aar$year=="vl_1866_1"] <- "1866-06-04"
+udd_aar$year[udd_aar$year=="vl_1866_2"] <- "1866-10-12"
+udd_aar$year[udd_aar$year=="vl_1869"] <- "1869-09-22"
+udd_aar$year[udd_aar$year=="vl_1872"] <- "1872-09-20"
+udd_aar$year[udd_aar$year=="vl_1873"] <- "1873-11-14"
+udd_aar$year[udd_aar$year=="vl_1876"] <- "1876-04-25"
+udd_aar$year[udd_aar$year=="vl_1879"] <- "1879-01-03"
+udd_aar$year[udd_aar$year=="vl_1881_1"] <- "1881-05-24"
+udd_aar$year[udd_aar$year=="vl_1881_2"] <- "1881-07-26"
+udd_aar$year[udd_aar$year=="vl_1884"] <- "1884-06-25"
+udd_aar$year[udd_aar$year=="vl_1887"] <- "1887-01-28"
+udd_aar$year[udd_aar$year=="vl_1890"] <- "1890-01-21"
+udd_aar$year[udd_aar$year=="vl_1892"] <- "1892-04-20"
+udd_aar$year[udd_aar$year=="vl_1895"] <- "1895-04-09"
+udd_aar$year[udd_aar$year=="vl_1898"] <- "1898-04-05"
+udd_aar$year[udd_aar$year=="vl_1901"] <- "1901-04-03"
+udd_aar$year[udd_aar$year=="vl_1903"] <- "1903-06-16"
+udd_aar$year[udd_aar$year=="vl_1906"] <- "1906-05-29"
+udd_aar$year[udd_aar$year=="vl_1909"] <- "1909-05-25"
+udd_aar$year[udd_aar$year=="vl_1910"] <- "1910-05-20"
+udd_aar$year[udd_aar$year=="vl_1913"] <- "1913-05-20"
+udd_aar$year[udd_aar$year=="vl_1915"] <- "1915-05-07"
+udd_aar$year[udd_aar$year=="vl_1918"] <- "1918-04-22"
+udd_aar$year[udd_aar$year=="vl_1920_1"] <- "1920-04-26"
+udd_aar$year[udd_aar$year=="vl_1920_2"] <- "1920-07-06"
+udd_aar$year[udd_aar$year=="vl_1920_3"] <- "1920-09-21"
+udd_aar$year[udd_aar$year=="vl_1924"] <- "1924-04-11"
+udd_aar$year[udd_aar$year=="vl_1926"] <- "1926-12-02"
+udd_aar$year[udd_aar$year=="vl_1929"] <- "1929-04-24"
+udd_aar$year[udd_aar$year=="vl_1932"] <- "1932-11-16"
+udd_aar$year[udd_aar$year=="vl_1935"] <- "1935-10-22"
+udd_aar$year[udd_aar$year=="vl_1939"] <- "1939-04-03"
+udd_aar$year[udd_aar$year=="vl_1943"] <- "1943-03-23"
+udd_aar$year[udd_aar$year=="vl_1945"] <- "1945-10-30"
+udd_aar$year[udd_aar$year=="vl_1947"] <- "1947-10-28"
+udd_aar$year[udd_aar$year=="vl_1950"] <- "1950-09-05"
+udd_aar$year[udd_aar$year=="vl_1953_1"] <- "1953-04-21"
+udd_aar$year[udd_aar$year=="vl_1953_2"] <- "1953-09-22"
+udd_aar$year[udd_aar$year=="vl_1957"] <- "1957-05-14"
+udd_aar$year[udd_aar$year=="vl_1960"] <- "1960-11-15"
+udd_aar$year[udd_aar$year=="vl_1964"] <- "1964-09-22"
+udd_aar$year[udd_aar$year=="vl_1966"] <- "1966-11-22"
+udd_aar$year[udd_aar$year=="vl_1968"] <- "1968-01-23"
+udd_aar$year[udd_aar$year=="vl_1971"] <- "1971-09-21"
+udd_aar$year[udd_aar$year=="vl_1973"] <- "1973-12-04"
+udd_aar$year[udd_aar$year=="vl_1975"] <- "1975-01-09"
+udd_aar$year[udd_aar$year=="vl_1977"] <- "1977-02-15"
+udd_aar$year[udd_aar$year=="vl_1979"] <- "1979-10-23"
+udd_aar$year[udd_aar$year=="vl_1981"] <- "1981-12-08"
+udd_aar$year[udd_aar$year=="vl_1984"] <- "1984-01-10"
+udd_aar$year[udd_aar$year=="vl_1987"] <- "1987-09-08"
+udd_aar$year[udd_aar$year=="vl_1988"] <- "1988-05-10"
+udd_aar$year[udd_aar$year=="vl_1990"] <- "1990-12-12"
+udd_aar$year[udd_aar$year=="vl_1994"] <- "1994-09-21"
+udd_aar$year[udd_aar$year=="vl_1998"] <- "1998-03-11"
+udd_aar$year[udd_aar$year=="vl_2001"] <- "2001-11-20"
+udd_aar$year[udd_aar$year=="vl_2005"] <- "2005-02-08"
+udd_aar$year[udd_aar$year=="vl_2007"] <- "2007-11-13"
+udd_aar$year[udd_aar$year=="vl_2011"] <- "2011-09-15"
+udd_aar$year[udd_aar$year=="vl_2015"] <- "2015-06-18"
+
+#Omkoder til dato
+udd_aar$year <- ymd(udd_aar$year)
+```
+
+```{r wrangling-udd-kat-grov-app, include=FALSE, echo=FALSE, message=FALSE} 
+#Grupper og summer 
+dummy_udd_kat_grov <- udd_aar %>%
+  count(year, udd_kat_grov) %>% 
+  group_by(year) %>% 
+  add_tally() %>%
+  mutate(andel_bolig_kat = n/nn)
+```
+
+```{r wrang-pol-befo-udd_1-app, include=FALSE, echo=FALSE, message=FALSE}
+udd_91_06 <- read.xlsx("...data")
+
+udd_06_15 <- read.xlsx("...data")
+
+#Omkoder data fra 2006-2015 til kategorier fra historisk data
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Grundskole"] <- "Grundskole"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Gymnasiale uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Erhvervsfaglige uddannelser"] <- "Praktisk videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Adgangsgivende uddannelsesforløb"] <- "Grundskole"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Korte videregående uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Mellemlange videregående uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Bacheloruddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Lange videregående uddannelser"] <- "Kandidatgrad eller højere"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Ph.d. og forskeruddannelser"] <- "Kandidatgrad eller højere"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Uoplyst mv."] <- "Ukendt"
+
+table(udd_06_15$Uddannelse, udd_06_15$udd_kat)
+
+#Omkoder data fra 1991-2006 til kategorier fra historisk data
+udd_91_06$udd_kat[udd_91_06$X1=="GRUNDSKOLE"] <- "Grundskole"
+udd_91_06$udd_kat[udd_91_06$X1=="ALMENGYMNASIAL UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="ERHVERVSUDDANNELSER"] <- "Praktisk videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="ERHVERVSGYMNASIAL UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="KORTE VIDEREGÅENDE UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="MELLEMLANGE VIDEREGÅENDE UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="BACHELOR"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="LANGE VIDEREGÅENDE UDDANNELSER"] <- "Kandidatgrad eller højere"
+udd_91_06$udd_kat[udd_91_06$X1=="UOPLYST"] <- "Ukendt"
+
+#Der er overlap mellem årene. Vi vælger den nyeste opgørelse af 2006. 
+udd_91_06 <- udd_91_06 %>% 
+  select(-aar_2006)
+
+#Gør data langt: 1991-2005
+udd_befo_samlet_long<-gather(udd_91_06, "aar", "antal", aar_1991:aar_2005)
+
+#Gør data langt: 2006-2015
+udd_befo_samlet_long_2<-gather(udd_06_15, "aar", "antal", aar_2006:aar_2015)
+
+#Fjerner først de detaljerede kategorier, som vi ikke er interesserede i
+udd_befo_samlet_long <- udd_befo_samlet_long %>% 
+  select(-X1)
+
+udd_befo_samlet_long_2 <- udd_befo_samlet_long_2 %>% 
+  select(-Uddannelse)
+
+#Merge de to datasæt
+udd_befo_samlet <- rbind(udd_befo_samlet_long, udd_befo_samlet_long_2)
+
+#Fjerner "aar" i year
+udd_befo_samlet$year <- str_sub(udd_befo_samlet$aar, start = 5L, end = 8L)
+
+udd_befo_samlet <- udd_befo_samlet %>% 
+  select(-aar)
+
+#Slår kategorierne sammen
+udd_befo_kat <- udd_befo_samlet %>% 
+  group_by(udd_kat, year) %>% 
+  summarise(samlet_udd_kat = sum(antal))
+
+#Laver datasæt til plot
+dummy_udd_befo_kat <- udd_befo_kat %>%
+  group_by(year) %>% 
+  mutate(dummy_andel_kat = samlet_udd_kat/sum(samlet_udd_kat))
+
+#Slår kategorierne sammen
+udd_befo_kat <- udd_befo_samlet %>% 
+  group_by(udd_kat, year) %>% 
+  summarise(samlet_udd_kat = sum(antal))
+
+#POLITIKERE OG BEFOLKNING
+dummy_udd_befo_kat_grov<-dummy_udd_befo_kat %>%
+  filter(udd_kat=="Boglig videreuddannelse"|udd_kat=="Kandidatgrad eller højere") %>%
+  group_by(year) %>%
+  summarise(andel_boglig=sum(dummy_andel_kat)) %>%
+  mutate(gruppe="Vælgerbefolkningen")
+
+#POLITIKERE
+dummy_udd_pol_kat_grov<-dummy_udd_kat_grov %>%
+  filter(udd_kat_grov=="Boglig videreuddannelse/kandidatgrad") %>%
+  select(andel_bolig_kat, year) %>%
+  filter(year>as.Date("1960-01-01")) %>%
+  ungroup() %>%
+  mutate(year=str_sub(year, 1, 4),
+         andel_boglig = andel_bolig_kat,
+         gruppe = "Folketinget") %>%
+  select(-andel_bolig_kat)
+
+#Valgundersøgelsen
+VS<-readRDS("...data")
+
+#SAMLE DATA
+udd_folk_og_pol <- full_join(dummy_udd_befo_kat_grov,dummy_udd_pol_kat_grov) 
+
+udd_folk_og_pol$year <- as.numeric(udd_folk_og_pol$year)
+
+udd_folk_og_pol <- full_join(udd_folk_og_pol, VS)
+
+# Omkodning
+udd_folk_og_pol$gruppe_lab <- 99
+udd_folk_og_pol$gruppe_lab[udd_folk_og_pol$gruppe=="Folketinget"]<- "Folketinget\n1960-2015"
+udd_folk_og_pol$gruppe_lab[udd_folk_og_pol$gruppe=="Vælgerbefolkningen"]<- "Vælgerbefolkningen\n1990-2015"
+udd_folk_og_pol$gruppe_lab[udd_folk_og_pol$gruppe=="Valgundersøgelsen"]<- "Valgundersøgelsen\n1971-2015"
+
+# Data for over boglig videreuddannelse
+udd_folk_og_pol1<-filter(udd_folk_og_pol,
+                         gruppe!="Valgundersøgelsen")
+
+
+#Grupper og summer 
+dummy_udd_kat <- udd_aar %>%
+  count(year, udd_kat) %>% 
+  group_by(year) %>% 
+  add_tally() %>%
+  mutate(andel_bolig_kat = n/nn)
+
+# Data for antal akadeimiere
+#POLITIKERE OG BEFOLKNING
+dummy_udd_befo_akk<-dummy_udd_befo_kat %>%
+  filter(udd_kat=="Kandidatgrad eller højere") %>%
+  group_by(year) %>%
+  summarise(andel_akk=sum(dummy_andel_kat)) %>%
+  mutate(gruppe="Vælgerbefolkningen")
+
+#POLITIKERE
+dummy_udd_pol_akk<-dummy_udd_kat %>%
+  filter(udd_kat=="Kandidatgrad eller højere") %>%
+  select(andel_bolig_kat, year) %>%
+  filter(year>as.Date("1960-01-01")) %>%
+  ungroup() %>%
+  mutate(year=str_sub(year, 1, 4),
+         andel_akk = andel_bolig_kat,
+         gruppe = "Folketinget") %>%
+  select(-andel_bolig_kat)
+
+#SAMLE DATA
+akk_folk_og_pol <- full_join(dummy_udd_befo_akk,dummy_udd_pol_akk)
+
+akk_folk_og_pol$gruppe_lab <- factor(akk_folk_og_pol$gruppe,
+                          levels=c("Folketinget",
+                                   "Vælgerbefolkningen"),
+                          labels=c("Folketinget\n1960-2015",
+                                   "Vælgerbefolkningen\n1990-2015"))
+
+```
+
+## Plotter det tilgængelige data
+```{r lav-udd-plots, echo=FALSE, include=FALSE}
+plot_b<-ggplot(data=udd_folk_og_pol1, aes(x=as.numeric(year), y=andel_boglig, color=as.factor(gruppe_lab)))+
+  geom_point(size=0.8)+
+  geom_line()+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.33)+
+  xlab("")+
+  ylab("Andel med boglig videreuddannelse")+
+  guides(color=guide_legend(title="Gruppe"))+
+  ylim(0,0.9)+ 
+  theme(axis.title=element_text(size=10))
+
+# Plot over akademikere videreuddannelse
+plot_a<- ggplot(data=akk_folk_og_pol, aes(x=as.numeric(year), y=andel_akk, color=as.factor(gruppe_lab)))+
+  geom_point(size=0.8)+
+  geom_line()+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.33)+
+  xlab("")+
+  ylab("Andel med kandidatuddannelse")+
+  guides(color=guide_legend(title="Gruppe"))+
+  ylim(0,0.9)+ 
+  theme(legend.position = "none",
+        axis.title=element_text(size=10))
+```
+
+```{r udd-pol-befo-plot, include=TRUE, echo=FALSE, fig.cap='Uddannelsesniveauet i Folketinget og vælgerbefolkningen', fig.align='center', out.width='95%', fig.asp=0.6} 
+ggarrange(plot_a, plot_b,
+          widths = c(0.64, 1), 
+          labels = c("A", "B"))
+```
+
+## Foretager ekstrapolering
+```{r ekstrapoler-boglig-1-app, include=TRUE, echo=FALSE, message=FALSE, out.width='80%', fig.align='center', fig.cap='Udregning af den funktionelle form for vælgerne med kandidatgrad'}
+## Isoler data
+df_fremskriv <- udd_folk_og_pol %>%
+  filter(gruppe=="Vælgerbefolkningen")
+## lav model
+df_fremskriv$pred1 <- predict(lm(andel_boglig ~ poly(year,2), data=df_fremskriv))
+
+## Tjek data ud
+p1<-ggplot(df_fremskriv, aes(x = year, y=andel_boglig)) +
+  geom_line() +
+  geom_point() +
+  ylab("Andel med boglig videreuddannelse")+
+  xlab("År")+
+  geom_hline(aes(yintercept=0))
+
+## check the model
+p1 +
+  geom_line(aes(y = pred1), color="red")
+```
+
+```{r ekstrapoler-boglig-2-app, include=TRUE, echo=FALSE, message=FALSE, out.width='80%', fig.align='center', fig.cap='Ekstrapolering for vælgere med bolig videreuddannelse'}
+## eekstrapoler
+pred <- data.frame(year=1971:2015)
+pred$value <- exp(predict(lm(log(andel_boglig) ~ poly(year,2), data=df_fremskriv),newdata=pred))
+
+p1 + geom_line(color="red", data=pred, aes(y=value))
+
+pred$andel_boglig<-pred$value
+pred$gruppe <- "Vælgerbefolkningen (ekstrapoleret)"
+
+test<-full_join(pred, udd_folk_og_pol)
+test$gruppe_lab[test$gruppe=="Vælgerbefolkningen (ekstrapoleret)"]<- "Vælgerbefolkningen\n(ekstrapoleret)"
+
+test$gruppe_lab <- factor(test$gruppe_lab,
+                          levels=c("Folketinget\n1960-2015",
+                                   "Vælgerbefolkningen\n1990-2015",
+                                   "Vælgerbefolkningen\n(ekstrapoleret)",
+                                   "Valgundersøgelsen\n1971-2015"))
+```
+
+```{r ekstrapoler-akk-1-app, include=TRUE, echo=FALSE, message=FALSE, out.width='80%', fig.align='center', fig.cap='Udregning af funktionelle form for vælgerne med kandidatgrad'}
+## Isoler data
+df_fremskriv_ak <- akk_folk_og_pol %>%
+  filter(gruppe=="Vælgerbefolkningen")
+
+df_fremskriv_ak$year<-as.numeric(df_fremskriv_ak$year)
+
+## develop a model
+#df_fremskriv_ak$pred1 <- exp(predict(lm(log(andel_akk) ~ year, data=df_fremskriv_ak)))
+df_fremskriv_ak$pred1 <- predict(lm(andel_akk ~ poly(year,2), data=df_fremskriv_ak))
+
+## look at the data
+p1<-ggplot(df_fremskriv_ak, aes(x = year, y=andel_akk)) +
+  geom_line() +
+  geom_point() +
+  ylab("Andel med kandidatgrad")+
+  xlab("År")+
+  geom_hline(aes(yintercept=0))
+
+## check the model
+p1 +
+  geom_line(aes(y = pred1), color="red")
+
+## extrapolate based on model
+pred <- data.frame(year=1971:2015)
+pred$value <- exp(predict(lm(log(andel_akk) ~ year, data=df_fremskriv_ak),newdata=pred))
+
+p1 +
+  geom_line(color="red", data=pred, aes(y=value))
+```
+
+```{r ekstrapoler-akk-2-app, include=TRUE, echo=FALSE, message=FALSE, out.width='80%', fig.align='center', fig.cap='Ekstrapolering for vælgere med kandidatgrad'}
+#Merger data
+pred$andel_akk<-pred$value
+pred$gruppe <- "Vælgerbefolkningen (ekstrapoleret)"
+akk_folk_og_pol$year<-as.numeric(akk_folk_og_pol$year)
+
+test2<-full_join(pred, akk_folk_og_pol)
+
+test2$gruppe_lab<-test2$gruppe
+
+test2$gruppe_lab <- factor(test2$gruppe_lab,
+                          levels=c("Folketinget",
+                                   "Vælgerbefolkningen",
+                                   "Vælgerbefolkningen (ekstrapoleret)"),
+                          labels=c("Folketinget 1960-2015",
+                                   "Vælgerbefolkningen 1990-2015",
+                                   "Vælgerbefolkningen (ekstrapoleret)"))
+```
+
+## Laver plot over 
+```{r plot-ekstrapoleret-data, include=FALSE, echo=FALSE}
+# Plot over boglig videreuddannelse
+plot_bog<-ggplot(data=test, aes(x=as.numeric(year), y=andel_boglig, color=as.factor(gruppe_lab), 
+                      shape=as.factor(gruppe_lab)))+
+  geom_ribbon(aes(ymin=lb95, ymax=ub95), linetype=2, alpha=0.1, show.legend = F)+
+  geom_line()+
+  geom_point(data = subset(test, gruppe_lab == 'Valgundersøgelsen\n1971-2015'),
+             size=0.8)+
+  geom_point(data = subset(test, gruppe_lab != 'Valgundersøgelsen\n1971-2015'),
+             size=0.8)+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.9)+
+  xlab("År")+
+  ylab("Andel med boglig videreuddannelse")+
+  scale_shape_manual(values=c(16, 16, 1,16))+
+  guides(color=guide_legend(title="Gruppe"),
+         shape=guide_legend(title="Gruppe"))+
+  ylim(0,0.9)+
+  theme(axis.title=element_text(size=10))
+
+# Plot over akademisk videreuddannelse
+plot_akk<-ggplot(data=test2, aes(x=as.numeric(year), y=andel_akk, color=as.factor(gruppe_lab), 
+                      shape=as.factor(gruppe_lab)))+
+  geom_line()+
+  geom_point(size=0.8)+
+  theme_classic()+
+  scale_color_viridis(discrete=T, option="A", begin=0, end=0.66)+
+  xlab("År")+
+  ylab("Andel med akademisk kandidat")+
+  scale_shape_manual(values=c(16, 16, 1))+
+  guides(color=guide_legend(title="Gruppe"),
+         shape=guide_legend(title="Gruppe"))+
+  ylim(0,0.9)+ 
+  theme(legend.position = "none",
+        axis.title=element_text(size=10))
+```
+
+```{r folk-og-pol-plot-ekstrapol, echo=FALSE, include=TRUE, fig.cap='Uddannelsesniveauet i Folketinget og vælgerbefolkningen (ekstrapoleret data)', fig.align='center', out.width='95%', fig.asp=0.6} 
+ggarrange(plot_akk,plot_bog,
+          widths = c(0.62, 1), 
+          labels = c("A", "B"))
+```
