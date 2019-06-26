@@ -1,0 +1,645 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Rensning af Folketingsmedlemmernes uddannelse (2005-2015) 
+I det følgende renser vi den del af folketingsmedlemmernes profiltekst, der handler om uddannelse. 
+
+### Højeste gennemførte uddannelse
+Vi er interesseret i højeste gennemførte uddannelse. Den sidste uddannelse et medlem har taget optræder som den første i biografien. Dette er ofte også den højeste uddannelse. Derfor kunne vi initielt bare køre en enkelt `str_extract` specificeret til den første uddannelsesoccurence, da den udtrækker første gang et mønster optræder. Nogle har dog fået efteruddannelse, hvorfor vi kører en `str_extract`, der trækker al uddannelsesinformation, og så en `str_split` for hver gang en ny uddannelsesstatus optræder.
+
+```{r, eval=FALSE}
+#Laver en liste, ved at tage alt mellem education-elementerne i html-koden
+udd_list<-str_split(
+  str_extract(df_medlemmer_07_15$biografi, "<education>((.|\n)*)</education>"), #Udtrækker alle elementer, der starter og slutter med education i en character vector
+  "</education>") #Splitter denne vector i en liste af elementer
+```
+
+Inden vi laver listen til variable skal den renses. Ovenstående kode laver et tomt element til slut i hvert listeelement. Dette skal fjernes.
+```{r, eval=FALSE}
+for(i in 1:length(udd_list)){
+  udd_list[[i]]<-udd_list[[i]][1:length(udd_list[[i]])-1]
+}
+```
+
+Vi laver en liste med uddannelses-titler
+```{r, eval=FALSE}
+udd_list_titel <- udd_list
+for(i in 1:length(udd_list_titel)){
+  udd_list_titel[[i]] <- str_replace(udd_list_titel[[i]], "\\<education>", "") # Fjerner "education>"
+  udd_list_titel[[i]] <- str_replace(udd_list_titel[[i]], "\\,.+", "") # Fjerner alt efter første komma (e.g. uddsted)
+  udd_list_titel[[i]] <- str_trim(str_replace(udd_list_titel[[i]], "\\,", ""), side="both") # Fjernet et eventuelt sidste komma og whitespaces
+}
+```
+
+Og så en liste med udd-sluttidspunkt
+```{r, eval=FALSE}
+udd_list_sluttid <- udd_list
+for(i in 1:length(udd_list_sluttid)){
+  udd_list_sluttid[[i]] <- str_extract(udd_list[[i]],"[:digit:]{4}$") # Tager sidst fire cifre
+}
+```
+
+Vi laver uddannelsesvariable, hvor udd_1 angiver nyeste uddannelse, udd_2 angiver næstnyeste og såfremdeles.
+```{r, eval=FALSE}
+#Hvor mange uddannelser har medlem med flest
+max(lengths(udd_list))
+
+# 
+for(i in 1:306){
+  df_medlemmer_07_15$udd_1[i] <- udd_list_titel[[i]][1]
+  df_medlemmer_07_15$udd_1_sluttid[i] <-udd_list_sluttid[[i]][1]
+  df_medlemmer_07_15$udd_2[i] <- udd_list_titel[[i]][2]
+  df_medlemmer_07_15$udd_2_sluttid[i] <-udd_list_sluttid[[i]][2]
+  df_medlemmer_07_15$udd_3[i] <- udd_list_titel[[i]][3]
+  df_medlemmer_07_15$udd_3_sluttid[i] <-udd_list_sluttid[[i]][3]
+  df_medlemmer_07_15$udd_4[i] <- udd_list_titel[[i]][4]
+  df_medlemmer_07_15$udd_4_sluttid[i] <-udd_list_sluttid[[i]][4]
+  df_medlemmer_07_15$udd_5[i] <- udd_list_titel[[i]][5]
+  df_medlemmer_07_15$udd_5_sluttid[i] <-udd_list_sluttid[[i]][5]
+  df_medlemmer_07_15$udd_6[i] <- udd_list_titel[[i]][6]
+  df_medlemmer_07_15$udd_6_sluttid[i] <-udd_list_sluttid[[i]][6]
+  df_medlemmer_07_15$udd_7[i] <- udd_list_titel[[i]][7]
+  df_medlemmer_07_15$udd_7_sluttid[i] <-udd_list_sluttid[[i]][7]
+  df_medlemmer_07_15$udd_8[i] <- udd_list_titel[[i]][8]
+  df_medlemmer_07_15$udd_8_sluttid[i] <-udd_list_sluttid[[i]][8]
+}
+```
+
+Så skal det samme gøres for kandidaterne fra det scrapede data.
+```{r, eval=FALSE}
+#For to medlemmer rykkes udd-profil til erhvervsprofil
+df_medlemmer_07_15$erhv_bio[df_medlemmer_07_15$navn=="Anne-Marie Meldgaard"]<-df_medlemmer_07_15$udd_bio[df_medlemmer_07_15$navn=="Anne-Marie Meldgaard"]
+df_medlemmer_07_15$udd_bio[df_medlemmer_07_15$navn=="Anne-Marie Meldgaard"]<-NA
+
+df_medlemmer_07_15$erhv_bio[df_medlemmer_07_15$navn=="Colette Brix"]<-df_medlemmer_07_15$udd_bio[df_medlemmer_07_15$navn=="Colette Brix"]
+df_medlemmer_07_15$udd_bio[df_medlemmer_07_15$navn=="Colette Brix"]<-NA
+
+udd_list_scrape<-str_split(df_medlemmer_07_15$udd_bio,
+  "<br>")
+```
+
+Inden vi laver listen til variable, skal denne også renses. Også her laver ovenstående kode et tomt element først i hvert listeelement - hvilket det skal fjernes.
+```{r, eval=FALSE}
+for(i in 1:length(udd_list_scrape)){
+  udd_list_scrape[[i]]<-udd_list_scrape[[i]][2:length(udd_list_scrape[[i]])]
+}
+```
+
+Så laver vi en liste med uddannelses-titler
+```{r, eval=FALSE}
+udd_list_titel <- udd_list_scrape
+for(i in 1:length(udd_list_titel)){
+  udd_list_titel[[i]] <- str_replace(udd_list_titel[[i]], "\\,.+", "") # Fjerner alt efter første komma (e.g. uddsted)
+  udd_list_titel[[i]] <- str_trim(str_replace(udd_list_titel[[i]], "\\,", ""), side="both") # Fjernet et eventuelt sidste komma og whitespaces
+  udd_list_titel[[i]] <- str_replace(udd_list_titel[[i]], "</p>\n", "")#fjerner ""</p>\n""
+  udd_list_titel[[i]] <- str_replace(udd_list_titel[[i]], "</p>", "")#fjerner </p>
+}
+```
+
+Og så en liste med udd-sluttidspunkt
+```{r, eval=FALSE}
+udd_list_sluttid <- udd_list_scrape
+for(i in 1:length(udd_list_sluttid)){
+  udd_list_sluttid[[i]] <- str_extract(udd_list_scrape[[i]],"[:digit:]{4}.$") # Tager sidst fire cifre
+}
+```
+
+```{r, eval=FALSE}
+#Laver indeksvariabel
+df_medlemmer_07_15$indeks<-1:nrow(df_medlemmer_07_15)
+
+# 
+for(i in df_medlemmer_07_15$indeks[df_medlemmer_07_15$skal.scrapes]){
+  df_medlemmer_07_15$udd_1[i] <- udd_list_titel[[i]][1]
+  df_medlemmer_07_15$udd_1_sluttid[i] <-udd_list_sluttid[[i]][1]
+  df_medlemmer_07_15$udd_2[i] <- udd_list_titel[[i]][2]
+  df_medlemmer_07_15$udd_2_sluttid[i] <-udd_list_sluttid[[i]][2]
+  df_medlemmer_07_15$udd_3[i] <- udd_list_titel[[i]][3]
+  df_medlemmer_07_15$udd_3_sluttid[i] <-udd_list_sluttid[[i]][3]
+  df_medlemmer_07_15$udd_4[i] <- udd_list_titel[[i]][4]
+  df_medlemmer_07_15$udd_4_sluttid[i] <-udd_list_sluttid[[i]][4]
+  df_medlemmer_07_15$udd_5[i] <- udd_list_titel[[i]][5]
+  df_medlemmer_07_15$udd_5_sluttid[i] <-udd_list_sluttid[[i]][5]
+  df_medlemmer_07_15$udd_6[i] <- udd_list_titel[[i]][6]
+  df_medlemmer_07_15$udd_6_sluttid[i] <-udd_list_sluttid[[i]][6]
+  df_medlemmer_07_15$udd_7[i] <- udd_list_titel[[i]][7]
+  df_medlemmer_07_15$udd_7_sluttid[i] <-udd_list_sluttid[[i]][7]
+  df_medlemmer_07_15$udd_8[i] <- udd_list_titel[[i]][8]
+  df_medlemmer_07_15$udd_8_sluttid[i] <-udd_list_sluttid[[i]][8]
+}
+```
+
+Vi omkoder folketingsmedlemmer med en efteruddannelse. Et eksempelvis på en efteruddannelse kunne være kortere ledelsesuddannelser eller tillægsuddannelser. Vi definerer efteruddannelse som en uddannelse, der *ikke* indgår i Uddannelses- og Forskningsministeriets samlede oversigt over uddannelse i Danmark, og som MF'eren har taget efter én eller flere uddannelser, der falder inden for ministeriets oversigt. For disse medlemmer kodes uddannelse til den senest afsluttede uddannelse, der falder inden for én af kategorierne i Uddannelses- og Forskningsministeriets oversigt. Hvis et medlem har en uafsluttet uddannelse (eksempelvis enkelte kurser på Merkonom-studiet eller en uafsluttet bacheloruddannelse i statskundskab), er medlemmets uddannelse kodet til den senest afsluttede uddannelse, der falder inden for én af kategorierne i Uddannelses- og Forskningsministeriets oversigt. 
+```{r, eval=FALSE}
+unique(df_medlemmer_07_15$udd_rens)
+
+#MF'ere, der har taget en efteruddannelse som sidste uddannelse, omkodes
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_2=="Supplerende uddannelse i retorik og formidling"]<-"Cand.Polit."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Thomas Adelskov"]<-"Lærer"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Doris Jakobsen"] <-"Grundskole"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="HD Udenrigshandel"] <-"Cand.polit."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Fagbevægelsens interne uddannelser"] <-"Maskinarbejder"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Startet kosmetikfirma"] <-"Grundskole"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Anne-Mette Winther Christiansen"]<-"Lærer"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Josephine Fock"] <-"Cand.jur."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Flemming Møller Mortensen"] <-"Sygeplejerske"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Teoretisk musikefteruddannelse"] <-"Pædagog"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Supplerende uddannelse som automatikmekaniker"] <-"Mekaniker"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="IAA-diplomuddannelse"] <-"Cand.oecon."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Fagbevægelsens lederuddannelse"]<-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Coach"] <-"Psykoterapeut"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Certificeret NLP Team Management Coach"] <-"BA i økonomi"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Etårig videreuddannelse"] <-"Merkonom"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Jyske Trænregiment"] <-"Murer"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Læsevejleder"] <-"Lærer"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Generalstabskursus"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Orlov fra Skat"] <-"Merkonom"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Tjeneste ved Jægerkorpset"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_2=="Young Managers Program"] <-"Cand.polit"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Undervist og trænet i hjemmetrænings- og undervisningsprogram for forældre inden for den alternative undervisningsmetode 'Son-Rise' for handicappede børn"] <-"Grundskole"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Uldum Højskole"] <-"Landbrugsuddannet"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Jens Henrik Thulesen Dahl"] <-"Civilingeniør"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Thyra Frank"] <-"Sygeplejerske"
+
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Journalistisk tillægsuddannelse"] <-"Pædagog"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Pædagogikum"] <-"Cand.mag."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Tillægsuddannelse i journalistisk formidling for universitetsbachelorer"] <-"BA i statskundskab"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$navn=="Manu Sareen"] <-"Socialpædagog"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Executive management"] <-"Cand.scient.adm."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Hd marketing management"] <-"Cand.merc."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="German Marshall Fellow"] <-"Journalist"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Lærer i art of living"] <-"Cand.theol."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Lektorgodkendt til professionsuddannelser"] <-"Cand.psyk."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Sidefag i samfundsfag"] <-"Cand.mag."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Driftlederuddannelse (grønt bevis)"] <-"Landbrugsuddannet"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Højskoleophold"] <-"Maler"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Executive Management"] <-"Cand.scient.adm."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Servicemedarbejder"]<-"Grundskole" #Jan Johansen nævner selv, at han har grundskole (Altinget)
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Dipomuddannelse"]<-"Kontorassistent"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="HD (A)"]<-"Lærer"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Teknologist Institut"]<-"Udlært møbelsnedker"
+
+
+# MF'ere, der ikke har færdiggjort studier, omkodes til senest afsluttede
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Påbegyndt uddannelsen til politibetjent ved Politiskolen"] <-"Højere handelseksamen"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Historie"] <-"Slagter"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Studerende (på orlov)"]<-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Ikke afsluttet cand.mag.-studium i historie og samfundsfag"]<-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Studerende på teknologisk-samfundsvidenskabelig planlægningsuddannelse"]<-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Bachelorstuderende i statskundskab"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Påbegyndt jurastudiet"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Medicinstudiet"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Kandidatstuderende i film- og medievidenskab"] <-"BA i dansk og medievidenskab"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Kurser på merkonomuddannelsen i markedsføring"] <-"Grundskole"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Historiestudier"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="HA-studier"] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Stud.rer.soc."] <-"Gymnasial"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Stud.scient.pol."] <-"Matematisk studentereksamen"
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Stud.soc.jur"] <-"BA.scient.pol."
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Digital design og kommunikation"] <-"Ba i historie"
+
+
+# MF'ere, der har skrevet ingen uddannelse men har uddannelse
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1=="Ingen uddannelse"] <-"Gymnasial"
+```
+
+Derudover laver vi en variabel for senest afsluttede uddannelse
+```{r, eval=FALSE}
+# Laver en renset variabel
+df_medlemmer_07_15$udd_clean <- df_medlemmer_07_15$udd_1
+
+#MF'ere, der har taget en efteruddannelse som sidste uddannelse, omkodes
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Thomas Adelskov"]<-"Lærer"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Fagbevægelsens interne uddannelser"] <-"Maskinarbejder"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="HD Udenrigshandel"] <-"Cand.polit."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Startet kosmetikfirma"] <-"Grundskole"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Anne-Mette Winther Christiansen"]<-"Lærer"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Josephine Fock"] <-"Cand.jur."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Flemming Møller Mortensen"] <-"Sygeplejerske"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Teoretisk musikefteruddannelse"] <-"Pædagog"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Supplerende uddannelse som automatikmekaniker"] <-"Mekaniker"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="IAA-diplomuddannelse"] <-"Cand.oecon."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Fagbevægelsens lederuddannelse"]<-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Coach"] <-"Psykoterapeut"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Certificeret NLP Team Management Coach"] <-"BA i økonomi"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Etårig videreuddannelse"] <-"Merkonom"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Jyske Trænregiment"] <-"Murer"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Læsevejleder"] <-"Lærer"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Generalstabskursus"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Orlov fra Skat"] <-"Merkonom"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Tjeneste ved Jægerkorpset"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Wharton Links Program"] <-"Cand.polit"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Undervist og trænet i hjemmetrænings- og undervisningsprogram for forældre inden for den alternative undervisningsmetode 'Son-Rise' for handicappede børn"] <-"Grundskole"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Uldum Højskole"] <-"Landbrugsuddannet"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Jens Henrik Thulesen Dahl"] <-"Civilingeniør"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Thyra Frank"] <-"Sygeplejerske"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Doris Jakobsen"] <-"Grundskole"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Journalistisk tillægsuddannelse"] <-"Pædagog"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Pædagogikum"] <-"Cand.mag."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Tillægsuddannelse i journalistisk formidling for universitetsbachelorer"] <-"BA i statskundskab"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$navn=="Manu Sareen"] <-"Socialpædagog"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Executive management"] <-"Cand.scient.adm."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Hd marketing management"] <-"Cand.merc."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="German Marshall Fellow"] <-"Journalist"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Lærer i art of living"] <-"Cand.theol."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Lektorgodkendt til professionsuddannelser"] <-"Cand.psyk."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Sidefag i samfundsfag"] <-"Cand.mag."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Driftlederuddannelse (grønt bevis)"] <-"Landbrugsuddannet"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Højskoleophold"] <-"Maler"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Executive Management"] <-"Cand.scient.adm."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Servicemedarbejder"]<-"Grundskole" #Jan Johansen nævner selv, at han har grundskole (Altinget)
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Dipomuddannelse"]<-"Kontorassistent"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="HD (A)"]<-"Lærer"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Teknologist Institut"]<-"Udlært møbelsnedker"
+
+
+# MF'ere, der ikke har færdiggjort studier, omkodes til senest afsluttede
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Påbegyndt uddannelsen til politibetjent ved Politiskolen"] <-"Højere handelseksamen"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Historie"] <-"Slagter"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Studerende (på orlov)"]<-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Ikke afsluttet cand.mag.-studium i historie og samfundsfag"]<-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Studerende på teknologisk-samfundsvidenskabelig planlægningsuddannelse"]<-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Bachelorstuderende i statskundskab"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Påbegyndt jurastudiet"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Medicinstudiet"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Kandidatstuderende i film- og medievidenskab"] <-"BA i dansk og medievidenskab"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Kurser på merkonomuddannelsen i markedsføring"] <-"Grundskole"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Historiestudier"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="HA-studier"] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Stud.rer.soc."] <-"Gymnasial"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Stud.scient.pol."] <-"Matematisk studentereksamen"
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Stud.soc.jur"] <-"BA.scient.pol."
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Digital design og kommunikation"] <-"Ba i historie"
+
+
+# MF'ere, der har skrevet ingen uddannelse men har uddannelse
+df_medlemmer_07_15$udd_clean[df_medlemmer_07_15$udd_1=="Ingen uddannelse"] <-"Gymnasial"
+```
+
+### Uddannelse ved første indvælgelse
+I det historiske data er uddannelse kodet som uddannelse ved indvælgelse. Derfor laver vi også en variabel for denne værdi idet digitalt indhentede data.
+```{r, eval=FALSE}
+#Laver en liste med nuværende constituency
+valgperiode_list<-str_split(
+  str_extract(df_medlemmer_07_15$biografi, "onstituency>((.|\n)+)onstituency>"), #Udtrækker alle elementer, der starter og slutter med education i en character vector
+  "onstituency>") #Splitter denne vector i en liste af elementer
+
+
+#Sletter det sidste NA-element
+for(i in 1:length(valgperiode_list)){
+  valgperiode_list[[i]]<-valgperiode_list[[i]][1:length(valgperiode_list[[i]])-1]
+}
+
+#Sletter det første NA-element
+for(i in 1:length(valgperiode_list)){
+  valgperiode_list[[i]]<-valgperiode_list[[i]][2:length(valgperiode_list[[i]])]
+}
+
+#Laver et dato-pattern, der passer til datoformatet i current constituency-variablen
+dato_mønster<-"[:digit:]{1,2}[:punct:][:space:][:lower:]{3}[:space:][:digit:]{4}"
+
+#Laver en liste med start-tider
+valgperiode_start_list <- valgperiode_list
+valgperiode_start <- NA
+for(i in 1:length(valgperiode_start_list)){
+  valgperiode_start_list[[i]] <- str_extract(valgperiode_start_list[[i]],dato_mønster) # Tager fra-dato
+  valgperiode_start_list[[i]] <- as.numeric(str_extract(valgperiode_start_list[[i]],"[:digit:]{4}")) #Tager år
+  valgperiode_start[i] <- min(valgperiode_start_list[[i]], na.rm=T) # 
+}
+valgperiode_start[valgperiode_start==Inf]<-NA
+```
+
+Det samme gøres for det data hentet direkte fra Folketingets hjemmeside
+```{r, eval=FALSE}
+#Laver en liste med nuværende medlemsperioder
+valgperiode_list<-str_split(df_medlemmer_07_15$bio_medlem, "Folketingsmedlem") 
+
+#Laver et dato-pattern, der passer til datoformatet i current constituency-variablen
+dato_mønster<-"fra [:digit:]{1,2}[:punct:][:space:][:lower:]{3,9}[:space:][:digit:]{4}"
+
+#Laver en liste med start-tider
+valgperiode_start_list <- valgperiode_list
+
+for(i in df_medlemmer_07_15$indeks[df_medlemmer_07_15$skal.scrapes]){
+  valgperiode_start_list[[i]] <- str_extract(valgperiode_start_list[[i]],dato_mønster) # Tager fra-dato
+  valgperiode_start_list[[i]] <- as.numeric(str_extract(valgperiode_start_list[[i]],"[:digit:]{4}")) #Tager år
+  valgperiode_start[i] <- min(valgperiode_start_list[[i]], na.rm=T) # 
+}
+
+df_medlemmer_07_15$første_periode_start<-valgperiode_start
+```
+
+Så skal uddannelse renses
+```{r, eval=FALSE}
+#Jeg gør sluttidsvariable til numeriske
+df_medlemmer_07_15$udd_1_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_1_sluttid, 1,4))
+df_medlemmer_07_15$udd_2_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_2_sluttid, 1,4))
+df_medlemmer_07_15$udd_3_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_3_sluttid, 1,4))
+df_medlemmer_07_15$udd_4_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_4_sluttid, 1,4))
+df_medlemmer_07_15$udd_5_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_5_sluttid, 1,4))
+df_medlemmer_07_15$udd_6_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_6_sluttid, 1,4))
+df_medlemmer_07_15$udd_7_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_7_sluttid, 1,4))
+df_medlemmer_07_15$udd_8_sluttid<-as.numeric(str_sub(df_medlemmer_07_15$udd_8_sluttid, 1,4))
+
+df_medlemmer_07_15$udd_rens <- 99
+
+#Hvis udd01 sluttid er < første indmeldelse --> udd_clean = udd01
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_1_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_1_sluttid)] <-df_medlemmer_07_15$udd_1[df_medlemmer_07_15$udd_1_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_1_sluttid)]
+
+#Hvis udd_rens er missing, udd02 sluttid er < første indmeldelse --> udd_clean = udd02
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_2_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_2_sluttid)]<-df_medlemmer_07_15$udd_2[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_2_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_2_sluttid)]
+
+#Hvis udd_rens er missing, udd03 sluttid er < første indmeldelse --> udd_clean = udd03
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_3_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_3_sluttid)]<-df_medlemmer_07_15$udd_3[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_3_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_3_sluttid)]
+
+#Hvis udd_rens er missing, udd04 sluttid er < første indmeldelse --> udd_clean = udd04
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_4_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_4_sluttid)]<-df_medlemmer_07_15$udd_4[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_4_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_4_sluttid)]
+
+#Hvis udd_rens er missing, udd05 sluttid er < første indmeldelse --> udd_clean = udd05
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_5_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_5_sluttid)]<-df_medlemmer_07_15$udd_5[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_5_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_5_sluttid)]
+
+#Hvis udd_rens er missing, udd06 sluttid er < første indmeldelse --> udd_clean = udd06
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_6_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_6_sluttid)]<-df_medlemmer_07_15$udd_6[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_6_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_6_sluttid)]
+
+#Hvis udd_rens er missing, udd07 sluttid er < første indmeldelse --> udd_clean = udd07
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_7_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_7_sluttid)]<-df_medlemmer_07_15$udd_7[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_7_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_7_sluttid)]
+
+#Hvis udd_rens er missing, udd08 sluttid er < første indmeldelse --> udd_clean = udd08
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_8_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_8_sluttid)]<-df_medlemmer_07_15$udd_8[df_medlemmer_07_15$udd_rens==99&df_medlemmer_07_15$udd_8_sluttid<=df_medlemmer_07_15$første_periode_start&!is.na(df_medlemmer_07_15$udd_8_sluttid)]
+
+# Hvis den endnu er missing, sættes den lig udd01, såfremt sluttid er missing
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99&is.na(df_medlemmer_07_15$udd_1_sluttid)]<-df_medlemmer_07_15$udd_1[df_medlemmer_07_15$udd_rens==99&is.na(df_medlemmer_07_15$udd_1_sluttid)]
+
+# De to tilbage med 99 er Pia Olsen Dyhr og Pernille Rosenkrantz-Theill - de har begge afsluttet akademiske uddannelser efter de blev valgt ind, så de sættes til studenter
+df_medlemmer_07_15$udd_rens[df_medlemmer_07_15$udd_rens==99]<-"Student"
+```
+
+
+### Kodning af Folketingsmedlemmernes uddannelse
+I det følgende koder vi 
+```{r, eval=FALSE}
+#Hent data
+df_07_15<-readRDS("...data")
+
+#Vælg udd_clean og tag kun unikke værdier
+df_07_15_kodning <- df_07_15 %>%
+  select(udd_rens) %>%
+  distinct()
+```
+
+Eksporterer uddannelse til Excel (så dette kan kodes af os + eksterne to kodere)
+```{r, eval=FALSE}
+# Omskriver en dataframe til en xlsx fil
+write.xlsx(df_07_15_kodning, 'kodning_af_udd.xlsx')
+```
+
+Så kan vi omkode.
+```{r, eval=FALSE}
+df_07_15$udd_kat <- 99
+
+df_07_15$udd_kat[df_07_15$udd_rens=="Akademiøkonom med speciale i salg"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Almen studentereksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Antropolog"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Asmildkloster Landbrugsskole"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Automekaniker"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="BA i dansk og medievidenskab"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Ba i historie"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="BA i samfundsfag"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="BA i statskundskab"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="BA i økonomi"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Ba scient.pol."] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="BA.scient.pol."] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bachelor i erhvervsøkonomi og virksomhedskommunikation"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bachelor i socialvidenskab"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bachelor i statskundskab"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bankelev i Unibank"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bankrådgiveruddannet"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Bibliotekarstudiet på Biblioteksskolen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="BSc.pol."] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Butiksuddannelse"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand. scient. pol."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.agro."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.comm."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.comm. i historie og kommunikation"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.comm. i offentlig forvaltning"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.jur."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag. i dansk"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag. i historie og arkæologi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag. i historie og samfundsfag"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag. i samfundsfag og dansk"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.mag.pæd."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.med."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc. (Applied Economics and Finance)"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc.aud."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc.int."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc.jur."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.merc.mat."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.negot."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.oecon"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.oecon."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.phil. i samfundsfag"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.polit."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.Polit."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.polit"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.psyk."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.pæd. i almen pædagogik"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.pæd. i dansk"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient. i anvendt kvartærgeologi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient. i geografi og geoinformatik"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient. i kulturgeografi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient. i miljøplanlægning og internationale udviklingsstudier"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient.adm."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient.adm. i offentlig administration og internationale udviklingsstudier"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient.pol"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient.pol."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.scient.soc."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.soc."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Cand.theol."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Civilingeniør"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Civiløkonom"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Datamatiker"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Designer"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Dr.phil."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Elektriker"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Elektrikeruddannet"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Erhvervscertifikat"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Farmakonom"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Finansøkonom"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Folkeskolelærer"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Folkeskolens 10. klasse"] <- 1
+df_07_15$udd_kat[df_07_15$udd_rens=="Folkeskolens afgangseksamen"] <- 1
+df_07_15$udd_kat[df_07_15$udd_rens=="Grundskole"] <- 1
+df_07_15$udd_kat[df_07_15$udd_rens=="Gymnasial"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Gymnasium"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="HA (jur.)"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Haslev Lærerseminarium"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="HF-eksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Hf-kursus"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Hf-student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Hhx-student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Højere handelseksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="InformationsAkademiet"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Journalist"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Journalisthøjskolen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Journalistuddannelsen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Journalistuddannet"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Jura"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Juridisk embedseksamen"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Kandidat i samfundsfag og sociologi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Kandidat i statskundskab med speciale i Grundtvigs frihedssyn"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Kandidatstuderende i historie og spansk"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="KaosPilot"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Kontorassistent"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Kontorelev"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Købmandsskolen"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Landbohøjskolen"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Landbrugsskole"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Landbrugsuddannet"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Lettres Modernes"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Læge"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Lærer"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Lærereksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Lærerstudier"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Læreruddannelse"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Læreruddannelsen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Læreruddannet"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="MA i europæiske studier"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="MA i statskundskab"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Mag.art. i filosofi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Magister i kultursociologi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Maler"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Maskinarbejder"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Master i europæisk politik og administration"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Master i journalistik"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Master of Arts i freds- og konfliktstudier"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Master of Public Administration (MPA)"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Master of Public Management"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Matematisk student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Matematisk studentereksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Mekaniker"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Merkonom"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Merkonom i ledelse og samarbejde"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Merkonom i markedsføring"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Merkonom i organisation og ledelse"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Merkonom i regnskab"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="MSc i udvikling og internationale forhold"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Murer"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Nysproglig student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Ophold på Skovskolen"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Ph.d."] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Ph.d. i international økonomi"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Politiet"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Præsteuddannelse"] <- 4
+df_07_15$udd_kat[df_07_15$udd_rens=="Psykoterapeut"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Pædagog"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Risskov Amtsgymnasium"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Salgsassistentuddannelse"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Samfundsfaglig student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Sekondløjtnant"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Skibsføreruddannelsen"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Slagter"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Social- og sundhedsassistent"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Social- og sundhedshjælper"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Socialpædagog"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Socialpædagog."] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Sproglig studentereksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Student"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Studentereksamen"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Svejser og skibsbygger"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Sygehjælper"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Sygehusportør"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Sygeplejeelev"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Sygeplejerske"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Teacher Education"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Tømrer"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet i handel engros"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet journalist"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet kriminalassistent fra Statens Politiskole"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet lærer"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet murersvend"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Uddannet VVS-montør"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Udlært butiksassistent"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Udlært møbelsnedker"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Udlært som klejnsmed"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Udlært tømrer"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Videregående officersuddannelse"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="VVS-montør"] <- 2
+df_07_15$udd_kat[df_07_15$udd_rens=="Økonomikonsulent og revisoruddannelse"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Østhimmerlands Ungdomsskole"] <- 1
+df_07_15$udd_kat[df_07_15$udd_rens=="Aabenraa Statsskole"] <- 3
+df_07_15$udd_kat[df_07_15$udd_rens=="Aalborg Tekniske Skole"] <- 1
+df_07_15$udd_kat[df_07_15$udd_rens=="Aarhus Katedralskole"] <- 3
+
+df_07_15$udd_kat <- factor(df_07_15$udd_kat, 
+                           levels=c(1,2,3,4,99),
+                           labels=c("Grundskole",
+                                    "Praktisk videreuddannelse",
+                                    "Boglig videreuddannelse",
+                                    "Kandidatgrad eller højere",
+                                    "Ukendt"))
+
+
+table(df_07_15$udd_kat)
+```
+
+```{r, eval=FALSE}
+#Samler dublicates
+df_07_15 <- df_07_15[!duplicated(df_07_15$navn),]
+
+#Karen Klint
+df_07_15$parti_07[df_07_15$navn=="Karen J. Klint"] <- "S"
+df_07_15$parti_11[df_07_15$navn=="Karen J. Klint"] <- "S"
+df_07_15$parti_15[df_07_15$navn=="Karen J. Klint"] <- "S"
+
+df_07_15$valgt_07[df_07_15$navn=="Karen J. Klint"] <- T
+df_07_15$valgt_11[df_07_15$navn=="Karen J. Klint"] <- T
+df_07_15$valgt_15[df_07_15$navn=="Karen J. Klint"] <- T
+
+#HC Skibby
+df_07_15$parti_07[df_07_15$navn=="Hans Kristian Skibby"] <- "DF"
+df_07_15$parti_11[df_07_15$navn=="Hans Kristian Skibby"] <- "DF"
+df_07_15$parti_15[df_07_15$navn=="Hans Kristian Skibby"] <- "DF"
+
+df_07_15$valgt_07[df_07_15$navn=="Hans Kristian Skibby"] <- T
+df_07_15$valgt_11[df_07_15$navn=="Hans Kristian Skibby"] <- T
+df_07_15$valgt_15[df_07_15$navn=="Hans Kristian Skibby"] <- T
+
+#Marinus
+df_07_15$parti_07[df_07_15$navn=="Morten Marinus"] <- NA
+df_07_15$parti_11[df_07_15$navn=="Morten Marinus"] <- "DF"
+df_07_15$parti_15[df_07_15$navn=="Morten Marinus"] <- "DF"
+
+df_07_15$valgt_07[df_07_15$navn=="Morten Marinus"] <- F
+df_07_15$valgt_11[df_07_15$navn=="Morten Marinus"] <- T
+df_07_15$valgt_15[df_07_15$navn=="Morten Marinus"] <- T
+
+#M.Dencker
+df_07_15$parti_07[df_07_15$navn=="Mette Hjermind Dencker"] <- NA
+df_07_15$parti_11[df_07_15$navn=="Mette Hjermind Dencker"] <- "DF"
+df_07_15$parti_15[df_07_15$navn=="Mette Hjermind Dencker"] <- "DF"
+
+df_07_15$valgt_07[df_07_15$navn=="Mette Hjermind Dencker"] <- F
+df_07_15$valgt_11[df_07_15$navn=="Mette Hjermind Dencker"] <- T
+df_07_15$valgt_15[df_07_15$navn=="Mette Hjermind Dencker"] <- T
+
+#Ane Halsboe
+df_07_15$parti_07[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- NA
+df_07_15$parti_11[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- "S"
+df_07_15$parti_15[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- "S"
+
+df_07_15$valgt_07[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- F
+df_07_15$valgt_11[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- T
+df_07_15$valgt_15[df_07_15$navn=="Ane Halsboe-Jørgensen"] <- T
+```
+
+

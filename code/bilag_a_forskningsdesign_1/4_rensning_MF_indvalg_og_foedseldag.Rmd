@@ -1,0 +1,40 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Rensning af Folketingsmedlemmernes indvælgelsesår og fødselsdag (2005-2015) 
+Vi laver en variabel for fødselsdag og alder ved indvalg.
+```{r, eval=FALSE}
+#Sætter mønster op
+fødselsdag_mønster <- "født [:digit:]{1,2}[:punct:] [:lower:]{3,10}.{1,2}[:digit:]{4}"
+#Trækker fødseldag fra biografi
+df_medlemmer_07_15$bday <- str_sub(str_extract(df_medlemmer_07_15$biografi, fødselsdag_mønster), start=6, end=-1L)
+#Trækker fødseldag fra bio short
+df_medlemmer_07_15$bday[is.na(df_medlemmer_07_15$bday)] <- str_sub(str_extract(df_medlemmer_07_15$bio_short[is.na(df_medlemmer_07_15$bday)], fødselsdag_mønster), start=6, end=-1L)
+  
+#Tager dato, mdr.forkortelse og årstal
+df_medlemmer_07_15$bday_1 <- paste(str_extract(df_medlemmer_07_15$bday, "[:digit:]{1,2}[:punct:] [:lower:]{3}"),
+                             str_extract(df_medlemmer_07_15$bday, "[:digit:]{4}"), sep=" ")
+#Gør den engelsk
+df_medlemmer_07_15$bday_eng <- str_replace(df_medlemmer_07_15$bday_1, "okt", "oct")    
+df_medlemmer_07_15$bday_eng <- str_replace(df_medlemmer_07_15$bday_eng, "maj", "may")
+
+#Gør til dato
+df_medlemmer_07_15$bday_date <- as.Date(df_medlemmer_07_15$bday_eng, format="%d. %b %Y")
+
+#Udregner alder ved et FV
+election_day15<-as.Date("2015-06-18")
+election_day11<-as.Date("2011-09-15")
+election_day07<-as.Date("2007-10-24")
+
+df_medlemmer_07_15$age_fv15 <- as.numeric(difftime(election_day15, df_medlemmer_07_15$bday_date, unit="weeks"))/52.25
+df_medlemmer_07_15$age_fv11 <- as.numeric(difftime(election_day11, df_medlemmer_07_15$bday_date, unit="weeks"))/52.25
+df_medlemmer_07_15$age_fv07 <- as.numeric(difftime(election_day07, df_medlemmer_07_15$bday_date, unit="weeks"))/52.25
+```
