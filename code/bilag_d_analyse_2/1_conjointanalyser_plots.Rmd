@@ -29,8 +29,7 @@ library(stargazer)
 
 
 ```{r Indlaes-data, include=FALSE}
-#choice_df<-readRDS(file="/Users/thorkilklint/Google_Drive_evert.klint.2019@gmail.com/04_Data/03_BaseCheck/01_Data/conjoint_choice.Rds")
-choice_df<-readRDS(file="...da")
+#choice_df<-readRDS(file="...data")
 ```
 
 ```{r Tjek-data-og-prohibitions, include=FALSE}
