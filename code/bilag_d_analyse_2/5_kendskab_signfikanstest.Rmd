@@ -22,7 +22,7 @@ library(stargazer)
 
 ## Signifikanstest af kendskab med og uden parti
 ```{r Indlaes-survey-data-kendskab, include=FALSE, echo=FALSE}
-eksperiment_df<-readRDS(file="/Users/annesofieevert/Google_Drive_evert.klint.2019@gmail.com/04_Data/02_Estimation/02_Data/survey_df_clean.Rds")
+eksperiment_df<-readRDS(file="...data")
 ```
 
 ```{r formand-eller-ej, include=FALSE, echo=FALSE}
