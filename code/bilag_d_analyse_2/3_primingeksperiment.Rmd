@@ -1,0 +1,832 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Primingeskperimentet: Tillid til politikere i Folketinget
+```{r Indlaes-eksperiment-data, include=FALSE}
+eksperiment_df<-readRDS(file="/Users/thorkilklint/Google_Drive_evert.klint.2019@gmail.com/04_Data/02_Estimation/02_Data/eksperiment_df_clean.Rds")
+```
+Vi udnytter, at conjointeksperimentet tilfældigt eksponerer vores respondenter for forskellige typer politikerprofiler. Vi ved præcis hvilke kandidater, hver respondent har set, og undersøger derfor, om vælgeres idé om sammensætningen af Folketinget og deres tillid til de siddende politikere i Folketinget varierer hermed.
+
+Vi undersøger først om der er forskel i tilliden til at politikere "*træffer de rigtige beslutninger*", "*håndterer skatteborgernes penge ansvarligt*" og "*hensyn til, hvad vælgerne mener*" på tværs af, om en respondent har set 0, 1, 2 eller 3-6 kandidatprofiler med under 1 års erhvervserfaring.
+```{r Hovedtest-under1aar, echo=FALSE, include=FALSE}
+#Ændre labels for at gøre grafen pænere
+eksperiment_df$fac_under1aar<-factor(eksperiment_df$fac_under1aar,
+                                      labels=c("0",
+                                               "1",
+                                               "2",
+                                               "3-6"))
+
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_under1aar + fac_AlderOver40aar, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig~fac_under1aar + fac_AlderOver40aar, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen~fac_under1aar + fac_AlderOver40aar, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_under1aar")), conf.level=0.95)
+
+## Og et plot
+under1aar_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_under1aar, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_under1aar, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_under1aar")), conf.level=0.95)
+
+## Og et plot
+under1aar_plot_2 <- ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_under1aar, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_under1aar, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  theme_classic(base_size = 10)+
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_under1aar")), conf.level=0.95)
+
+## Og et plot
+under1aar_plot_3 <- ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_under1aar, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_under1aar, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  theme_classic(base_size = 10)+
+  ggtitle("Tager hensyn til vælgerne")+
+  theme(axis.text=element_text(size=11),
+        axis.title=element_text(size=11),
+        plot.title=element_text(size=11))
+```
+
+```{r under1aar-samlet, out.width='100%', fig.align='center', echo=FALSE, fig.cap='Eksponering for kandidater med lav erhvervserfaring og tillid til Folketinget'}
+under1aar <- ggarrange(under1aar_plot_1, under1aar_plot_2 + rremove("y.text"), under1aar_plot_3 + rremove("y.text"),
+          ncol = 3, nrow = 1,
+          widths = c(1.1,1,1))
+
+annotate_figure(under1aar,
+                bottom = text_grob("Antal kandidater med under 1 års erhvervserfaring, respondenten præsenteres for i conjointeksperimentet", size = 8))
+```
+
+```{r Hovedtest-Statskundskaber, include=FALSE, echo=FALSE}
+#Ændre labels for at gøre grafen pænere
+eksperiment_df$fac_statskundskabere <- factor(eksperiment_df$fac_statskundskabere,labels=c("0",
+                                               "1",
+                                               "2",
+                                               "3-6"))
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_statskundskabere + fac_OffentligLeder, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig ~ fac_statskundskabere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen ~ fac_statskundskabere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# I hånden
+# Ref grid viser vægten, altså N, for hvert felt i et kryds mellem de to prædiktorer
+ref_grid(lm_beslut)@grid
+
+#Vi kan finde den prædikterede tillid for hver felt i et kryds mellem de to prædiktorer
+predikt_matrix<-matrix(predict(ref_grid(lm_beslut)), nrow = 4)
+predikt_matrix
+
+# Og så tager vi gennemsnit af disse prædikterede værdier. Hver værdi har vægt=1. 
+apply(predikt_matrix, 1, mean)
+
+# Det er ikke det samme som et simpelt gennemsnit af tilliden i feltet. Eller, det ville det være hvis vi kun have én prediktor, men når vi har to, ændrer den observationsvægt hver enkel obs har i den predikterede tillid (Jf. Samii 2016)
+mean(eksperiment_df$pol_beslut[eksperiment_df$fac_statskundskabere=="0 statskundskabere" &
+                                 eksperiment_df$fac_OffentligLeder=="0 offentlige ledere"], na.rm=T)
+
+
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_statskundskabere")), conf.level=0.95)
+
+stats_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_statskundskabere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_statskundskabere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  theme_classic()+
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_statskundskabere")), conf.level=0.95)
+stats_plot_2 <- ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_statskundskabere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_statskundskabere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10))+
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_statskundskabere")), conf.level=0.95)
+stats_plot_3 <- ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_statskundskabere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_statskundskabere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10))+
+  ggtitle("Tager hensyn til vælgerne")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+  
+statskundskab <- ggarrange(stats_plot_1, stats_plot_2 + rremove("y.text"), stats_plot_3 + rremove("y.text"),
+          ncol = 3, 
+          nrow = 1,
+          widths = c(1.1,1,1))
+
+s<-annotate_figure(statskundskab,
+                bottom = text_grob("Antal statskundskabere respondenten præsenteres for i conjointeksperimentet", size = 10, 
+                                   y = 1.6))
+```
+
+Vi undersøger det samme for antal akademikere.
+```{r Hovedtest-Akademiker, echo=FALSE, include=FALSE}
+#Ændre labels for at gøre grafen pænere
+eksperiment_df$fac_akademikere <- factor(eksperiment_df$fac_akademikere,
+                                      labels=c("0-1",
+                                               "2",
+                                               "3",
+                                               "4",
+                                               "5",
+                                               "6-8"))
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_akademikere + fac_OffentligLeder, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig~fac_akademikere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen~fac_akademikere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_akademikere")), conf.level=0.95)
+## Og et plot
+akad_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_akademikere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_akademikere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_akademikere")), conf.level=0.95)
+## Og et plot
+akad_plot_2 <- ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_akademikere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_akademikere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_akademikere")), conf.level=0.95)
+
+## Og et plot
+akad_plot_3 <-ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_akademikere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_akademikere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Tager hensyn til vælgerne")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+akademiker <- ggarrange(akad_plot_1, akad_plot_2 + rremove("y.text"), akad_plot_3 + rremove("y.text"), 
+          ncol = 3, nrow = 1,
+          widths = c(1.1,1,1))
+
+a<-annotate_figure(akademiker,
+                bottom = text_grob("Antal akademikere, respondenten præsenteres for i conjointeksperimentet", size = 10, 
+                                   y = 1.6))
+```
+
+Og antallet af ledere.
+```{r Hovedtest-Leder, include=FALSE, echo=FALSE}
+#Ændre labels for at gøre grafen pænere
+eksperiment_df$fac_leder<-factor(eksperiment_df$fac_leder,labels=c("0-1",
+                                 "2",
+                                 "3",
+                                 "4",
+                                 "5-7"))
+
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_leder + fac_LavUdd, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig~fac_leder + fac_LavUdd, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen~fac_leder + fac_LavUdd, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_leder")), conf.level=0.95)
+## Og et plot
+leder_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_leder, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_leder, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_leder")), conf.level=0.95)
+## Og et plot
+leder_plot_2 <- ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_leder, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_leder, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +  
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_leder")), conf.level=0.95)
+## Og et plot
+leder_plot_3 <- ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_leder, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_leder, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10))  +
+  ggtitle("Tager hensyn til vælgerne")+
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=9))
+
+leder <- ggarrange(leder_plot_1, leder_plot_2 + rremove("y.text"), leder_plot_3 + rremove("y.text"), 
+          ncol = 3, nrow = 1,
+          widths = c(1.1,1,1))
+
+c<-annotate_figure(leder,
+                bottom = text_grob("Antal ledere respondenten præsenteres for i conjointeksperimentet", size = 10, 
+                                   y = 1.6))
+```
+
+```{r led-akk-stat-samlet, fig.width=7, fig.height=10,  fig.align='center',fig.cap='Eksponering for kandidattyper og tillid til Folketinget', echo=FALSE}
+ggarrange(a,s,c, 
+          ncol=1, nrow=3)
+```
+
+Så undersøger vi, om det har betydning for respondenternes bud på sammensætningen af Folketinget.
+Først ud fra eksponering for statskundskabere.
+```{r Estimation-Statskundskaber, out.width='33%', echo=FALSE, include=FALSE}
+#Ændre labels for at gøre grafen pænere
+eksperiment_df$fac_statskundskabere <- factor(eksperiment_df$fac_statskundskabere,labels=c("0",
+                                               "1",
+                                               "2",
+                                               "3-6"))
+# Slår videnskabelige notation fra
+options(scipen = 999)
+
+#Kører test på træffer de rigtige beslutninger
+lm_est_stats<-lm(est_lang_udd ~ fac_statskundskabere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_est_stats)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_est_stats<-tidy(emmeans(lm_est_stats, c("fac_statskundskabere")), conf.level=0.95)
+
+est_stats_plot <- ggplot(plot_data_est_stats) +
+    geom_bar(aes(x=fac_statskundskabere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_statskundskabere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("Antal statskundskabere")+
+  ylab("... lang videregående udd")+
+  ylim(c(0,80)) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+```
+
+Og så ud fra eksponering for akademikere.
+```{r Estimation-Akademiker, out.width='33%', echo=FALSE, include=FALSE}
+# Slår videnskabelige notation fra
+options(scipen = 999)
+
+#Kører test på træffer de rigtige beslutninger
+lm_est_akad<-lm(est_lang_udd ~ fac_akademikere + fac_OffentligLeder, data=eksperiment_df)
+summary(lm_est_akad)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_est_akad<-tidy(emmeans(lm_est_akad, c("fac_akademikere")), conf.level=0.95)
+
+est_akad_plot <- ggplot(plot_data_est_akad) +
+    geom_bar(aes(x=fac_akademikere, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_akademikere, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("Antal akademikere")+
+  ylab("... lang videregående udd.")+
+  ylim(c(0,80)) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+```
+
+Og så antal med under 1 års erhvervserfaring.
+```{r Estimation-Erhvervserfaring, out.width='33%', echo=FALSE, include=FALSE}
+# Slår videnskabelige notation fra
+options(scipen = 999)
+
+#Kører test på træffer de rigtige beslutninger
+lm_est_erhv<-lm(est_erhv_erf ~ fac_under1aar + alder, data=eksperiment_df)
+summary(lm_est_erhv)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_est_erhv<-tidy(emmeans(lm_est_erhv, c("fac_under1aar")), conf.level=0.95)
+
+est_erhv_plot <- ggplot(plot_data_est_erhv) +
+    geom_bar(aes(x=fac_under1aar, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_under1aar, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("Antal <1 års erhvervserfaring")+
+  ylab("... min. 2 års erhvervserfaring")+
+  ylim(c(0,80)) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+```
+
+Og over 15 års erhvervserfaring.
+```{r Estimation-Erhvervserfaring-15, out.width='33%', echo=FALSE, include=FALSE}
+#Ændrer labels så grafen bliver pænere
+eksperiment_df$fac_over15aar <- factor(eksperiment_df$fac_over15aar,labels=c("0",
+                                               "1",
+                                               "2",
+                                               "3",
+                                               "4",
+                                               "5-7"))
+
+# Slår videnskabelige notation fra
+options(scipen = 999)
+
+#Kører test på træffer de rigtige beslutninger
+lm_est_erhv_15<-lm(est_erhv_erf ~ fac_over15aar + alder, data=eksperiment_df)
+summary(lm_est_erhv_15)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_est_erhv_15<-tidy(emmeans(lm_est_erhv_15, c("fac_over15aar")), conf.level=0.95)
+
+est_erhv_15_plot <- ggplot(plot_data_est_erhv_15) +
+    geom_bar(aes(x=fac_over15aar, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_over15aar, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("Antal >15 års erhvervserfaring")+
+  ylab("... min. 2 års erhvervserfaring")+
+  ylim(c(0,80)) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+```
+
+Vi plotter det samlet.
+```{r samlet-priming, out.width='95%', fig.align='center', fig.cap='Eksponering og estimation af MFeres uddannelse og erhvervserfaring', echo=FALSE, warning=FALSE, message=FALSE}
+samlet_est <- ggarrange(est_stats_plot, est_akad_plot + rremove("y.title"), 
+                        est_erhv_plot, est_erhv_15_plot + rremove("y.title"),
+          ncol = 2, nrow = 2,
+          widths = c(1.1,1,1.1,1))
+
+annotate_figure(samlet_est,
+                left = text_grob("Forventede andel MF'ere med...",rot = 90, size=8))
+```
+
+Vi foretager samme test for gruppehypotesen.
+```{r wrangling-gruppe, echo=FALSE, include=FALSE}
+# Tjekker fordelingen af de forskellige uddannelsesgrupper
+table(eksperiment_df$udd_grup)
+table(eksperiment_df$count_akademikere)
+
+# Vi laver en variabel for, hvor mange man ser med samme uddgrad som én selv
+eksperiment_df$count_SammeUdd <- 99
+unique(eksperiment_df$udd_grup)
+
+##SKAL SORTERES SOM >FØRSTE LINJE
+eksperiment_df$count_SammeUdd[eksperiment_df$udd_grup=="Lang vidr. udd."] <-eksperiment_df$count_akademikere[eksperiment_df$udd_grup=="Lang vidr. udd."]
+
+eksperiment_df$count_SammeUdd[eksperiment_df$udd_grup=="Mellemlang vidr. udd."] <-eksperiment_df$count_MellemLang[eksperiment_df$udd_grup=="Mellemlang vidr. udd."]
+
+eksperiment_df$count_SammeUdd[eksperiment_df$udd_grup=="Kort vidr. udd."] <- 0
+
+eksperiment_df$count_SammeUdd[eksperiment_df$udd_grup=="Erhvervsudd." ] <- eksperiment_df$count_erhvervsudd[eksperiment_df$udd_grup=="Erhvervsudd." ]
+
+eksperiment_df$count_SammeUdd[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ] <- eksperiment_df$count_Grundskole[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ]
+
+eksperiment_df$count_SammeUdd[eksperiment_df$count_SammeUdd==99] <- NA
+
+## Gør det til en faktor
+table(eksperiment_df$count_SammeUdd) #Tæller kategorier
+
+eksperiment_df$fac_SammeUdd<-eksperiment_df$count_SammeUdd #Koder dem sammen
+eksperiment_df$fac_SammeUdd[eksperiment_df$count_SammeUdd == 3]<-3
+eksperiment_df$fac_SammeUdd[eksperiment_df$count_SammeUdd == 4]<-3
+eksperiment_df$fac_SammeUdd[eksperiment_df$count_SammeUdd == 5]<-3
+eksperiment_df$fac_SammeUdd[eksperiment_df$count_SammeUdd == 6]<-3
+eksperiment_df$fac_SammeUdd[eksperiment_df$count_SammeUdd == 7]<-3
+
+eksperiment_df$fac_SammeUdd<-factor(eksperiment_df$fac_SammeUdd, 
+                                      levels=c(0,1,2,3),
+                                      labels=c("0 med samme uddannelse", 
+                                               "1 med samme uddannelse",
+                                               "2 med samme uddannelse",
+                                               "3-6 med samme uddannelse"))
+table(eksperiment_df$count_SammeUdd, eksperiment_df$fac_SammeUdd)
+```
+
+```{r hovedtest-gruppe, echo=FALSE, include=FALSE}
+#Ændre labels så graf bliver pænere
+eksperiment_df$fac_SammeUdd<-factor(eksperiment_df$fac_SammeUdd,
+                                      labels=c("0", 
+                                               "1",
+                                               "2",
+                                               "3-6"))
+
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_SammeUdd + udd_grup, data=eksperiment_df)
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig ~ fac_SammeUdd + udd_grup, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen ~ fac_SammeUdd + udd_grup, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_SammeUdd")), conf.level=0.95)
+## Og et plot
+gruppe_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_SammeUdd, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_SammeUdd, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10))   +
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_SammeUdd")), conf.level=0.95)
+## Og et plot
+gruppe_plot_2 <-ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_SammeUdd, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_SammeUdd, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_SammeUdd")), conf.level=0.95)
+## Og et plot
+gruppe_plot_3 <-ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_SammeUdd, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_SammeUdd, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("") +
+  ylim(c(0,10)) +
+  ggtitle("Tager hensyn til vælgerne")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+samlet_est <- ggarrange(gruppe_plot_1, gruppe_plot_2+rremove("y.text"), gruppe_plot_3+rremove("y.text"), 
+          ncol = 3, nrow = 1,
+          widths=c(1.1,1,1))
+
+a<-annotate_figure(samlet_est,
+                top = text_grob("Alle respondenter", size = 12, x=0.13),
+                bottom = text_grob("Antal kandidater fra samme uddannelsesgruppe som respondenten", size = 10, 
+                                   y = 1.6))
+```
+
+Og for marginaliseringshypotesen.
+```{r wrangling-margi, echo=FALSE, include=FALSE}
+# Vi laver en variabel for, hvor mange man ser med samme uddgrad som én selv
+eksperiment_df$count_margi <- 99
+
+## Omkoder variable
+eksperiment_df$count_margi[eksperiment_df$udd_grup=="Lang vidr. udd."] <- NA
+
+eksperiment_df$count_margi[eksperiment_df$udd_grup=="Mellemlang vidr. udd."] <- NA
+
+eksperiment_df$count_margi[eksperiment_df$udd_grup=="Kort vidr. udd."] <- NA
+
+eksperiment_df$count_margi[eksperiment_df$udd_grup=="Erhvervsudd." ] <- eksperiment_df$count_erhvervsudd[eksperiment_df$udd_grup=="Erhvervsudd." ]
+
+eksperiment_df$count_margi[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ] <- eksperiment_df$count_Grundskole[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ]
+
+eksperiment_df$count_margi[eksperiment_df$count_margi==99] <- NA
+
+#Tjekker variabelværdier
+table(eksperiment_df$count_margi)
+
+## Gør det til en faktor
+eksperiment_df$fac_margi<-eksperiment_df$count_margi #Koder dem sammen
+eksperiment_df$fac_margi[eksperiment_df$count_margi == 3]<-3
+eksperiment_df$fac_margi[eksperiment_df$count_margi == 4]<-3
+eksperiment_df$fac_margi[eksperiment_df$count_margi == 5]<-3
+eksperiment_df$fac_margi[eksperiment_df$count_margi == 6]<-3
+
+table(eksperiment_df$fac_margi)
+
+eksperiment_df$fac_margi<-factor(eksperiment_df$fac_margi, 
+                                      levels=c(0,1,2,3),
+                                      labels=c("0 med samme uddannelse", 
+                                               "1 med samme uddannelse",
+                                               "2 med samme uddannelse",
+                                               "3-6 med samme uddannelse"))
+
+table(eksperiment_df$count_margi, eksperiment_df$fac_margi)
+```
+
+```{r hovedtest-margi, echo=FALSE, include=FALSE}
+#Ændre labels så graf bliver pænere
+eksperiment_df$fac_margi<-factor(eksperiment_df$fac_margi,
+                                      labels=c("0", 
+                                               "1",
+                                               "2",
+                                               "3-6"))
+
+# Slår videnskabelige notation fra
+options(scipen = 999) 
+
+#Kører test på træffer de rigtige beslutninger
+lm_beslut<-lm(pol_beslut ~ fac_margi + udd_grup, data=eksperiment_df)
+summary(lm_beslut)
+
+#Kører test på håndterer penge ansvarligt
+lm_ansvarlig<-lm(pol_ansvarlig ~ fac_margi + udd_grup, data=eksperiment_df)
+summary(lm_ansvarlig)
+
+#Kører test på tager hensyn til folket
+lm_hensyn<-lm(pol_hen ~ fac_margi + udd_grup, data=eksperiment_df)
+summary(lm_hensyn)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_beslut<-tidy(emmeans(lm_beslut, c("fac_margi")), conf.level=0.95)
+## Og et plot
+margi_plot_1 <- ggplot(plot_data_beslut) +
+    geom_bar( aes(x=fac_margi, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_margi, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Træffer rigtige beslutninger")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_ansvarlig<-tidy(emmeans(lm_ansvarlig, c("fac_margi")), conf.level=0.95)
+## Og et plot
+margi_plot_2 <-ggplot(plot_data_ansvarlig) +
+    geom_bar( aes(x=fac_margi, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_margi, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Håndterer skatten ansvarligt")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+# Med EM-Means og broom til at gøre den tidy
+plot_data_hensyn<-tidy(emmeans(lm_hensyn, c("fac_margi")), conf.level=0.95)
+## Og et plot
+margi_plot_3 <-ggplot(plot_data_hensyn) +
+    geom_bar( aes(x=fac_margi, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_margi, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  ylim(c(0,10)) +
+  ggtitle("Tager hensyn")+
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=10),
+        plot.title=element_text(size=10))
+
+samlet_est <- ggarrange(margi_plot_1, margi_plot_2+rremove("y.text"), margi_plot_3+rremove("y.text"), 
+          ncol = 3, nrow = 1,
+          widths = c(1.1,1,1))
+
+b<-annotate_figure(samlet_est,
+                top = text_grob("Respondenter fra marginaliserede grupper", size = 12, x=0.25),
+                bottom = text_grob("Antal kandidater fra samme uddannelsesgruppe som respondenten", size = 10, 
+                                   y = 1.6))
+```
+
+```{r samlet-plot-gruppe, fig.width=8, fig.height=10.5, fig.align='center', echo=FALSE, fig.cap='Gruppeeksponering og tillid til Folketinget'}
+ggarrange(a,b,
+          nrow=2, ncol=1)
+```
+
+Vi undersøger om opfattelsen af Folketingets sammensætning varierer med, hvor mange man har set fra sin egen gruppe.
+```{r wrangling-est-gruppe, echo=FALSE, include=FALSE}
+#Wrangling til at kunne teste gruppeestimationshypotese
+eksperiment_df$guess_SammeUdd <- 99
+unique(eksperiment_df$udd_grup)
+
+eksperiment_df$guess_SammeUdd[eksperiment_df$udd_grup=="Lang vidr. udd."]<- eksperiment_df$est_lang_udd[eksperiment_df$udd_grup=="Lang vidr. udd."]
+
+eksperiment_df$guess_SammeUdd[eksperiment_df$udd_grup=="Mellemlang vidr. udd."]<- eksperiment_df$est_ml_udd[eksperiment_df$udd_grup=="Mellemlang vidr. udd."]
+
+eksperiment_df$guess_SammeUdd[eksperiment_df$udd_grup=="Kort vidr. udd."] <- 0
+
+eksperiment_df$guess_SammeUdd[eksperiment_df$udd_grup=="Erhvervsudd." ] <- eksperiment_df$est_erhv_udd[eksperiment_df$udd_grup=="Erhvervsudd." ]
+
+eksperiment_df$guess_SammeUdd[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ] <- eksperiment_df$est_kort_udd[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ]
+
+table(eksperiment_df$guess_SammeUdd)
+```
+
+```{r plot-est-gruppe, echo=FALSE, include=FALSE}
+#Kører test på træffer de rigtige beslutninger
+lm_gruppe_est<-lm(guess_SammeUdd ~ fac_SammeUdd + udd_grup, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_gruppe_est)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_gruppe_est<-tidy(emmeans(lm_gruppe_est, c("fac_SammeUdd")), conf.level=0.95)
+
+## Og et plot
+gruppe_est_plot <- ggplot(plot_data_gruppe_est) +
+    geom_bar( aes(x=fac_SammeUdd, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_SammeUdd, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("Forventet andel MF'ere med uddannelse som én selv")+
+  ylim(c(0,30)) +
+  ggtitle("Alle respondenter")+
+  theme(axis.text=element_text(size=9),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=11))
+```
+
+Samt for den marginaliserede gruppe.
+```{r wrangling-est-margi, echo=FALSE, include=FALSE}
+#Wrangling til at kunne teste gruppeestimationshypotese
+eksperiment_df$guess_margi <- 99
+unique(eksperiment_df$udd_grup)
+
+eksperiment_df$guess_margi[eksperiment_df$udd_grup=="Lang vidr. udd."]<- NA
+
+eksperiment_df$guess_margi[eksperiment_df$udd_grup=="Mellemlang vidr. udd."]<- NA
+
+eksperiment_df$guess_margi[eksperiment_df$udd_grup=="Kort vidr. udd."] <- NA
+
+eksperiment_df$guess_margi[eksperiment_df$udd_grup=="Erhvervsudd." ] <- eksperiment_df$est_erhv_udd[eksperiment_df$udd_grup=="Erhvervsudd." ]
+
+eksperiment_df$guess_margi[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ] <- eksperiment_df$est_kort_udd[eksperiment_df$udd_grup=="Grund-/folkeskole & gymnasiel" ]
+
+table(eksperiment_df$guess_margi)
+```
+
+```{r plot-est-margi, include=FALSE, echo=FALSE}
+#Kører test på træffer de rigtige beslutninger
+lm_margi_est<-lm(guess_margi ~ fac_margi + udd_grup, data=eksperiment_df)
+
+#Tjekker resultater
+summary(lm_margi_est)
+
+## Marginal means
+# Med EM-Means og broom til at gøre den tidy
+plot_data_margi_est<-tidy(emmeans(lm_margi_est, c("fac_margi")), conf.level=0.95)
+
+## Og et plot
+margi_est_plot <- ggplot(plot_data_margi_est) +
+    geom_bar( aes(x=fac_margi, y=estimate), stat="identity", alpha=0.7) +
+    geom_errorbar( aes(x=fac_margi, ymin=conf.low, ymax=conf.high), width=0.15, alpha=0.9, size=1)+
+  theme_classic()+
+  xlab("")+
+  ylab("Forventet andel MF'ere med uddannelse som én selv")+
+  ylim(c(0,30)) +
+  ggtitle("Respondenter fra marginaliserede grupper")+
+  theme(axis.text=element_text(size=9),
+        axis.title=element_text(size=9),
+        plot.title=element_text(size=11))
+```
+
+```{r est-grup-margi, include=TRUE, echo=FALSE, fig.cap='Eksponering og estimation af MFeres uddannelse', fig.width=7}
+samlet_est <- ggarrange(gruppe_est_plot, margi_est_plot+rremove("y.title")+rremove("y.text"),
+          ncol = 2, nrow = 1,
+          widths = c(1.1,1))
+
+annotate_figure(samlet_est,
+                bottom = text_grob("Antal kandidater fra samme uddannelsesgruppe som respondenten", size = 10, 
+                                   y=1.4))
+```
+ 
