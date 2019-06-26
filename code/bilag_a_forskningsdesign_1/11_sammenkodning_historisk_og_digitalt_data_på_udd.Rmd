@@ -1,0 +1,220 @@
+---
+header-includes:
+    - \usepackage{setspace}\doublespacing
+    - \usepackage{booktabs} 
+    - \usepackage{tabularx}
+output:   
+  bookdown::pdf_document2:
+  fig_caption: true
+  fontsize: 10.5pt
+---
+
+## Sammenkodning af det historiske (1849-2005) og digitalt data (2005-2015) over Folketingsmedlemmernes uddannelse 
+### Kodebog for uddannelse
+Kodebog for uddannelseskodning findes i figur \@ref(tab:uddkod). 
+
+\begin{table}[t]
+\centering
+\caption{Uddannelseskodning}
+\label{tab:uddkod}
+\begin{tabularx}{\textwidth}{lll}
+\toprule
+\vspace{2mm}
+\textbf{4-gruppekodning} & \textbf{Historisk data} & \textbf{Nyt data} \\ \midrule 
+\medskip 
+\textbf{1. Grundskoleuddannelse} & \begin{tabular}[c]{@{}l@{}}1.1 Folkeskoleuddannede.\\ 1.2 Mellemskole og realskole.\end{tabular} &  \begin{tabular}[c]{@{}l@{}}1.a Bevis for folkeskolens 9. klasse\\ 1.b Bevis for folkeskolens 10. klasse\end{tabular}\\ 
+\medskip 
+\textbf{2. Praktisk videreuddannelse} & \begin{tabular}[c]{@{}l@{}}2.1 Landbrugsuddannelser\\ 2.2 Teknisk skole\\ 2.3 Officeruddannelser\end{tabular} &  \begin{tabular}[c]{@{}l@{}}2.a Erhvervsuddannelser\\ 2.b Maritime uddannelser\\ 2.c Politiets uddannelser\end{tabular}\\ 
+\medskip 
+\textbf{3. Boglig videreuddannelse} & \begin{tabular}[c]{@{}l@{}}3.1 Studentereksamen\\ 3.2 Handelsskole\\ 3.3 Seminarium\end{tabular} &  \begin{tabular}[c]{@{}l@{}}3.a Gymnasiale uddannelser\\ 3.b Professionsbacheloruddannelser\\ 3.c Bachelor- og diplomuddannelser\\ 3.d Akademiuddannelser\\ 3.e Erhvervsakademiuddannelser\end{tabular}\\ 
+\medskip 
+\textbf{4. Akademisk kandidatgrad} & \begin{tabular}[c]{@{}l@{}}4.1 Akademisk grad\\ 4.2 Dansk doktorgrad\end{tabular} &  \begin{tabular}[c]{@{}l@{}}4.a Kandidatgrad\\ 4.b Mastergrad \\ 4.c Ph.d.-grad\end{tabular}\\ \bottomrule
+\medskip 
+\end{tabularx}
+\end{table}
+
+### Merger de forskellige uddannelseskategorier ud fra kodebogen
+```{r, eval=FALSE}
+#Indlæser historisk data
+his_udd_merge<-readRDS("...data")
+
+## Merge data
+udd_analyse_data<-full_join(his_udd_merge, df_07_15, by=c("navn_merge"="navn"), 
+                            suffix=c("_his", "_scrape"))
+
+
+# Der er største kodemæssige fejl mellem boglig videreuddannelse og kandidatgrad og praktisk videreuddannelse og grundskole - vi merger de to i et validitetstjek.
+table(udd_analyse_data$udd_kat_his,udd_analyse_data$udd_kat_scrape)
+
+## Lav samlet variabel for udd_kat
+udd_analyse_data$udd_kat <- udd_analyse_data$udd_kat_his
+udd_analyse_data$udd_kat[is.na(udd_analyse_data$udd_kat_his)]<-udd_analyse_data$udd_kat_scrape[is.na(udd_analyse_data$udd_kat_his)]
+
+# Laver en grov uddannelsekategori
+udd_analyse_data$udd_kat_grov <- 99
+udd_analyse_data$udd_kat_grov[udd_analyse_data$udd_kat=="Grundskole"|udd_analyse_data$udd_kat=="Praktisk videreuddannelse"]<-1
+udd_analyse_data$udd_kat_grov[udd_analyse_data$udd_kat=="Boglig videreuddannelse"|udd_analyse_data$udd_kat=="Kandidatgrad eller højere"]<-2
+udd_analyse_data$udd_kat_grov[udd_analyse_data$udd_kat=="Ukendt"]<-99
+
+udd_analyse_data$udd_kat_grov<-factor(udd_analyse_data$udd_kat_grov, 
+                                      levels=c(1,2,99), 
+                                      labels=c("Grundskole/praktisk videreuddannelse",
+                                               "Boglig videreuddannelse/kandidatgrad",
+                                               "Ukendt"))
+
+table(udd_analyse_data$udd_kat_grov, udd_analyse_data$valgt_15)
+```
+
+
+I sammenkodningen af de to typer data skal det bemærkes, at det historiske data baserer sig på den højeste uddannelsesgrad et folketingsmedlem havde gennemført ved første indvælgelse til Folketinget. Datasættet skelner mellem folketingsmedlemmers primære uddannelse, eventuel efteruddannelse og mellemuddannelser. Variablen for primære uddannelser inddeler folketingsmedlemmerne efter om de har 1. folkeskole, 2. mellemskole, realskole og præliminærekesamen, 3. studentereksamen, 4. akademisk grad eller 5. doktorgrad som højeste gennemførte uddannelse. Variablen for efteruddannelse markerer højskole eller landbrugsskoleophold, mens variablen for mellemuddannelser markerer, om et medlem har gået på teknisk skole, seminarium, handelsskole eller en officeruddannelse. Denne inddeling bærer præg af, at det historiske data dækker en periode tilbage til 1849.
+
+### Test af om sammenkodning ml. historisk og digitaliseret data er ækvivalent
+Vi behøver ikke at nøjes med at antage, at kodningen er ækvivalent mellem det historiske og digitalt indhentede uddannelsesdata. Da en del af de folketingsmedlemmer, der sad på tinge i 2007, 2011 og 2015, blev indvalgt første gange ved valget 2005 eller inden, er der en del af folketingsmedlemmerne, der både indgår i det historiske og det digitalt indhentede data, og vi kan derfor sammenholde om kodningen i de fire nye uddannelseskategorier i de to datasæt.
+
+```{r, eval=FALSE}
+# Henter data
+df_07_15<-readRDS("...data")
+
+#Laver en vektor med navne i medlemsdata
+name_or_vec <- paste(df_07_15$navn, collapse = "|")
+
+df1.1$med_i_scrapet_data<-str_detect(df1.1$navn_merge, name_or_vec)
+
+df_kode_udd <- df1.1 %>%
+  filter(med_i_scrapet_data) %>%
+  select(navn_merge, udd_kat,prim_udd, mellemuddannelse, efteruddannelse, parti_v_indtræden, første_indtræden, fulde_navn)
+
+df_07_15_kode_udd <- df_07_15 %>% 
+  select(navn, udd_kat, udd_rens, første_periode_start)
+
+#Samler data
+df_kode_samlet<-left_join(df_kode_udd, df_07_15_kode_udd, by=c("fulde_navn"="navn"), suffix=c(".his", ".scrapet"))
+
+#Tjekker kodning
+table(df_kode_samlet$udd_kat.his, df_kode_samlet$udd_kat.scrapet)
+```
+
+Det ser ikke ud til, at der er de store forskelle i, hvordan uddannelse er klassificeret for de personer, der overlapper. En inspiceringen viser dog nogle uenigheder i forhold til: 
+
+* Praktisk videreuddannelse i det digitalt indhentede og grundskole i det historiske data
+* Kandidatgrad i det digitalt indhentede og boglig i det historiske data
+
+Vi ser nærmere på dette.
+```{r, eval=FALSE}
+View(df_kode_samlet[df_kode_samlet$udd_kat.his!=df_kode_samlet$udd_kat.scrapet,])
+```
+
+Af de 138 medlemmer, der både indgår i det historiske data og i det digitalt indhentede data er der uoverenstemmelse mellem uddannelseskodningen for 19 af medlemmerne. Dette skyldes:
+
+1. manglende information (otte uoverensstemmelser)
+2. uoverensstemmelse mellem grundskoleuddannet og praktisk videreuddannet (seks uoverensstemmelser)
+3. uoverensstemmelse mellem bogligt eller akademisk uddannet (fem uoverensstemmelser). 
+
+Årsagerne til disse uoverensstemmelser skal med al sandsynligheden findes i det danske uddannelsessystems udvikling over tid. 
+
+Seks uoverenstemmelser ift. praktisk stilling og grundskole:
+
+* Poul Andersen er kodet som grundskole i historisk data og praktisk i digital data pga. udlært tømrer
+* Bjarne Laustsen er kodet som grundskole i historisk data og praktisk i digital data pga. udlært maskinarbejder
+* Jørn Dohrmann grundskole i historisk data og praktisk i digital data pga. udlært mekaniker
+* Per Ørum Jørgensener grundskole i historisk data og praktisk i digital data pga. udlært butiksassistent
+* Tom Behnke har grundskole i historisk data data og praktisk i digital data pga. skovuddannelse
+* Lone Møller har grundskole i historisk data data og praktisk i digital data pga. sygehjælper
+
+*Et eksempel på uoverensstemmelse mellem grundskoleuddannelse og praktisk videreuddannelse*:
+Folketingsmedlemmer med håndværkeruddannelser før 1991 vil have stået i mesterlære, og da mesterlære ikke indeholdes i det historiske datas uddannelsesvariabel, vil de være kodet som grundskoleuddannede. Folketingsmedlemmer med håndværkeruddannelser efter 1991 vil i imidlertid være kodet som praktisk videreuddannede i det digitalt indhentede datasæt. Et eksempel på en sådan kandidat er Jørn Dohrmann fra Dansk Folkeparti, der har været folketingsmedlem fra 2001 til 2014. Dohrmann har stået i mesterlære til automekaniker på et værksted i Haderslev fra 1985 til 1988, men da dette ikke kodes som en uddannelse i det historiske data, står han her noteret med grundskole som højeste uddannelse. I dag er den tilsvarende uddannelse erhvervsuddannelsen som eksempelvis personvognsmekaniker eller lastvognsmekaniker. Derfor kodes han som praktisk uddannet i det digitalt indhentede data.`
+
+Disse fire fejl kan rette, så vi opdaterer det digitalt indhentede data pba. det historiske
+```{r, eval=FALSE}
+df_07_15$udd_rens[df_07_15$navn=="Henrik Dam Kristensen"]<-"Teknisk skole"
+df_07_15$udd_kat[df_07_15$navn=="Henrik Dam Kristensen"]<-"Praktisk videreuddannelse"
+
+df_07_15$udd_rens[df_07_15$navn=="Anne-Marie Meldgaard"]<-"Handelsskole"
+df_07_15$udd_kat[df_07_15$navn=="Anne-Marie Meldgaard"]<-"Boglig videreuddannelse"
+
+df_07_15$udd_rens[df_07_15$navn=="Niels Sindal"]<-"Student"
+df_07_15$udd_kat[df_07_15$navn=="Niels Sindal"]<-"Boglig videreuddannelse"
+
+df_07_15$udd_rens[df_07_15$navn=="Kim Christiansen"]<-"Grundskole"
+df_07_15$udd_kat[df_07_15$navn=="Kim Christiansen"]<-"Grundskole"
+
+df_07_15$udd_rens[df_07_15$navn=="Colette Brix"]<-"Grundskole"
+df_07_15$udd_kat[df_07_15$navn=="Colette Brix"]<-"Grundskole"
+```
+
+Derudover finder vi seks fejl i det historiske data.
+
+* Johannes Poulsen er lærer, ikke bare grundskole
+* Mette Gjerskov er cand.agro, ikke bare student
+* Lise von Seelen er socialpædagog, ikke bare grundskole
+* Simon Emil Ammitzbøll er kun BA, ikke kandidat
+* Helge Sander er journalist, ikke bare grundskole
+
+Vi undlader at gøre noget her, og opdaterer således ikke det historiske data. Det er nemlig et problem, hvis flere kandidater tilbage i tiden er kodet under deres rigtige uddannelse. Dog er alle sammen kodet med lavere uddannelse, end de skal have, og vi forventer derfor ikke at det giver bias.
+
+*Et eksempel på uoverensstemmelse mellem bogligt eller akademisk uddannelse*:
+Mette Gjerskov fra Socialdemokratiet (valgt ind i 2005) afsluttede i 1993 sin uddannelse som agronom ved Den Kongelige Veterinær- og Landbohøjskole. Indtil 1992 var uddannelsen som agronom en 4-årig uddannelse, og Gjerskov står derfor i det historiske data kodet som havende en teoretisk landbrugsuddannelse, hvilket i vores kodebog oversættes til en boglig videreuddannelse. Efter 1992 er agronomuddannelsen imidlertid ændret til en 5-årig kandidatuddannelse, hvorfor Gjerskov i det scrapede data står kodet som havende en kandidatgrad.
+
+## Rensning af befolkningsdata for uddannelse
+Vi henter data over befolkningens uddannelse fra Danmarks Statistik. Da vi er interesserede i danske vælgere, vælger vi kun personer med dansk oprindelse og efterkommere. Alderskategorierne overlapper med 18 år. Vi kan derfor enten vælge at medtage eller at fjerne 15-19 år. For ikke at overestimere gruppen med grundskoleuddannelse fjerner vi denne gruppe. Bemærk i øvrigt, at oversigten kun går indtil 69 år.
+
+Derudover omkoder vi de enkelte uddannelseskategorier i befolkningsdataet, de så passer til kategorierne over folketingsmedlemmernes uddannelse.
+```{r indlaes-befo-udd, eval=FALSE}
+# xlsx filer: Data er opdelt i to sæt. Vi indlæser disse.
+udd_91_06 <- read.xlsx("...data")
+udd_06_15 <- read.xlsx("...data")
+
+#Omkoder data fra 2006-2015 til kategorier fra historisk data
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Grundskole"] <- "Grundskole"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Gymnasiale uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Erhvervsfaglige uddannelser"] <- "Praktisk videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Adgangsgivende uddannelsesforløb"] <- "Grundskole"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Korte videregående uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Mellemlange videregående uddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Bacheloruddannelser"] <- "Boglig videreuddannelse"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Lange videregående uddannelser"] <- "Kandidatgrad eller højere"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Ph.d. og forskeruddannelser"] <- "Kandidatgrad eller højere"
+udd_06_15$udd_kat[udd_06_15$Uddannelse=="Uoplyst mv."] <- "Ukendt"
+
+#Omkoder data fra 1991-2006 til kategorier fra historisk data
+udd_91_06$udd_kat[udd_91_06$X1=="GRUNDSKOLE"] <- "Grundskole"
+udd_91_06$udd_kat[udd_91_06$X1=="ALMENGYMNASIAL UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="ERHVERVSUDDANNELSER"] <- "Praktisk videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="ERHVERVSGYMNASIAL UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="KORTE VIDEREGÅENDE UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="MELLEMLANGE VIDEREGÅENDE UDDANNELSER"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="BACHELOR"] <- "Boglig videreuddannelse"
+udd_91_06$udd_kat[udd_91_06$X1=="LANGE VIDEREGÅENDE UDDANNELSER"] <- "Kandidatgrad eller højere"
+udd_91_06$udd_kat[udd_91_06$X1=="UOPLYST"] <- "Ukendt"
+
+#Der er overlap mellem årene. Vi vælger den nyeste opgørelse af 2006. 
+udd_91_06 <- udd_91_06 %>% 
+  select(-aar_2006)
+
+#Gør data langt: 1991-2005
+udd_befo_samlet_long<-gather(udd_91_06, "aar", "antal", aar_1991:aar_2005)
+
+#Gør data langt: 2006-2015
+udd_befo_samlet_long_2<-gather(udd_06_15, "aar", "antal", aar_2006:aar_2015)
+
+#Fjerner først de detaljerede kategorier, som jeg ikke er interesserede i
+udd_befo_samlet_long <- udd_befo_samlet_long %>% 
+  select(-X1)
+
+udd_befo_samlet_long_2 <- udd_befo_samlet_long_2 %>% 
+  select(-Uddannelse)
+
+#Merger de to datasæt
+udd_befo_samlet <- rbind(udd_befo_samlet_long, udd_befo_samlet_long_2)
+
+#Fjerner "aar" i year
+udd_befo_samlet$year <- str_sub(udd_befo_samlet$aar, start = 5L, end = 8L)
+
+udd_befo_samlet <- udd_befo_samlet %>% 
+  select(-aar)
+
+#Slår kategorierne sammen
+udd_befo_kat <- udd_befo_samlet %>% 
+  group_by(udd_kat, year) %>% 
+  summarise(samlet_udd_kat = sum(antal))
+```
