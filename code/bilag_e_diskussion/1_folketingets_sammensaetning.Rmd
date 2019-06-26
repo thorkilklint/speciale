@@ -25,7 +25,7 @@ library(ggpubr) #Flere plots på samme side
 Vi undersøger vælgernes kendskab til folketingets sammensætning på lang videregående uddannelse og erhvervserfaring.
 ```{r andel-kender-udd-FT-app, echo=FALSE, include=FALSE}
 #Respondenternes estimat: Gennemsnit 37.291 der har en lang videregående uddannelse. Respondenterne underestimerer altså andelens med lang videregående uddannelse.
-eksperiment_df<-readRDS(file="/Users/annesofieevert/Google_Drive_evert.klint.2019@gmail.com/04_Data/02_Estimation/02_Data/eksperiment_df_clean.Rds")
+eksperiment_df<-readRDS(file="...data")
 
 
 mean(eksperiment_df$est_lang_udd)
