@@ -25,5 +25,8 @@ The project contains the following files
 ### Results
 *Is to come*
 
+## Preregistration
+The preregistration of this project can be found here: https://bit.ly/2X3qwOB.
+
 ## More Information
-Some of the scraper functions has been set to eval=F, as they may be outdated at one point and as we hope to apply less pressure on the Danish Parliament Website. We strongly suggest to rely mainly on the API-function. A knitted version of each of the coding files is available in the code-folder. 
+Some of the scraper functions has been set to eval=F, as they may be outdated at one point and as we hope to apply less pressure on the Danish Parliament Website. We strongly suggest to rely mainly on the API-function.
